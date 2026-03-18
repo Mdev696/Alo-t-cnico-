@@ -1,0 +1,51 @@
+-- 1. LIMPEZA (Cuidado: isso apaga os dados atuais da tabela para reconstruir do zero)
+drop table if exists registros_alerta;
+
+-- 2. CRIAÇÃO DA TABELA
+create table registros_alerta (
+  id uuid default gen_random_uuid () primary key,
+  ticket text,
+  setor text,
+  data_iso date,
+  endereco text,
+  tipo text,
+  informacoes text,
+  qtd_fotos int,
+  fotos_urls text, -- Onde os links das fotos serão guardados
+  status text default 'Pendente',
+  created_at timestamp with time zone default timezone ('utc'::text, now())
+);
+
+-- 3. HABILITAR SEGURANÇA (RLS)
+alter table registros_alerta enable row level security;
+
+-- 4. POLÍTICAS DE ACESSO PARA A TABELA (Usuários Autenticados)
+create policy "Permitir leitura para autenticados" on registros_alerta for
+select
+  using (auth.role () = 'authenticated');
+
+create policy "Permitir inserção para autenticados" on registros_alerta for insert
+with
+  check (auth.role () = 'authenticated');
+
+create policy "Permitir update para autenticados" on registros_alerta
+for update
+  using (auth.role () = 'authenticated');
+
+create policy "Permitir delete para autenticados" on registros_alerta for delete using (auth.role () = 'authenticated');
+
+-- 5. POLÍTICAS DE ACESSO PARA O STORAGE (Arquivos/Fotos)
+-- Nota: Certifique-se de já ter criado o bucket 'fotos_irregularidades' no menu Storage
+create policy "Upload de fotos para autenticados" on storage.objects for insert
+with
+  check (
+    bucket_id = 'fotos_irregularidades'
+    and auth.role () = 'authenticated'
+  );
+
+create policy "Ver fotos para autenticados" on storage.objects for
+select
+  using (
+    bucket_id = 'fotos_irregularidades'
+    and auth.role () = 'authenticated'
+  );
