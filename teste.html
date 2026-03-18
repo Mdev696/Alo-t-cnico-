@@ -16,7 +16,6 @@
             --success: #28a745;
             --danger: #dc3545;
             --warning: #ffc107;
-            --row-success: #e8f5e9;
         }
 
         body {
@@ -27,7 +26,6 @@
             color: var(--dark);
         }
 
-        /* TELA DE LOGIN */
         #login-screen {
             position: fixed;
             top: 0;
@@ -68,7 +66,7 @@
 
         main {
             padding: 15px;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -135,11 +133,10 @@
         }
 
         .thumb-foto {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             object-fit: cover;
-            border-radius: 5px;
-            margin-top: 5px;
+            border-radius: 4px;
             cursor: pointer;
             border: 1px solid #ddd;
         }
@@ -152,35 +149,43 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.8rem;
-            min-width: 550px;
+            font-size: 0.75rem;
+            min-width: 900px;
         }
 
         th {
             text-align: left;
             background: #f4f4f4;
-            padding: 10px;
+            padding: 12px 8px;
             color: var(--vivo-purple);
+            border-bottom: 2px solid #ddd;
         }
 
         td {
-            padding: 10px;
+            padding: 10px 8px;
             border-bottom: 1px solid #eee;
             vertical-align: middle;
+            line-height: 1.2;
         }
 
         .btn-action {
             border: none;
-            padding: 8px;
-            border-radius: 5px;
+            padding: 6px;
+            border-radius: 4px;
             color: white;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             margin-right: 2px;
         }
 
         .hidden {
             display: none !important;
+        }
+
+        .text-wrap {
+            max-width: 150px;
+            word-wrap: break-word;
+            white-space: normal;
         }
     </style>
 </head>
@@ -220,12 +225,26 @@
                     <h2 id="display-sector">Setor: -</h2>
                     <form id="irregularityForm">
                         <input type="hidden" id="editId" value="">
+
+                        <label>Equipe</label>
+                        <select id="equipe" required>
+                            <option value="">Selecione...</option>
+                            <option value="N1">N1</option>
+                            <option value="REDE EXTERNA">REDE EXTERNA</option>
+                        </select>
+
+                        <label>Nome do Técnico</label>
+                        <input type="text" id="tecnicoNome" placeholder="Nome completo" required>
+
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
+
                         <label>Fotos</label>
                         <input type="file" id="fotos" accept="image/*" capture="environment" multiple>
+
                         <label>Endereço Completo</label>
                         <input type="text" id="endereco" required>
+
                         <label>Tipo de Irregularidade</label>
                         <select id="tipo" required>
                             <option value="">Selecione...</option>
@@ -238,8 +257,10 @@
                             <option>Emenda Danificada</option>
                             <option>Pon Danificado</option>
                         </select>
+
                         <label>Informações Adicionais</label>
-                        <textarea id="informacoes" rows="2"></textarea>
+                        <textarea id="informacoes" rows="2" required></textarea>
+
                         <button type="submit" id="btnSubmitForm" class="btn-submit">SALVAR NO BANCO</button>
                         <button type="button" onclick="resetForm()"
                             style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:10px; cursor:pointer;">Voltar</button>
@@ -254,8 +275,14 @@
                         <thead>
                             <tr>
                                 <th>Ticket</th>
+                                <th>Técnico</th>
+                                <th>Equipe</th>
                                 <th>Data</th>
-                                <th>Setor/Tipo</th>
+                                <th>Setor</th>
+                                <th>Irregularidade</th>
+                                <th>Endereço</th>
+                                <th>Informações</th>
+                                <th>Fotos</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -271,7 +298,6 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let setorSelecionado = "";
 
         async function checkSession() {
@@ -298,10 +324,7 @@
             }
         };
 
-        async function logout() {
-            await supabaseClient.auth.signOut();
-            location.reload();
-        }
+        async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
         function showPortal() {
             document.getElementById('login-screen').classList.add('hidden');
@@ -352,13 +375,14 @@
             const registro = {
                 ticket: ticketGerado,
                 setor: setorSelecionado,
+                equipe: document.getElementById('equipe').value,
+                tecnico_nome: document.getElementById('tecnicoNome').value,
                 data_iso: document.getElementById('dataRegistro').value,
                 endereco: document.getElementById('endereco').value,
                 tipo: document.getElementById('tipo').value,
                 informacoes: document.getElementById('informacoes').value,
                 qtd_fotos: files.length > 0 ? files.length : undefined,
-                fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined,
-                status: 'Pendente'
+                fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined
             };
 
             let res;
@@ -389,17 +413,20 @@
                     const links = item.fotos_urls.split(',');
                     fotosHtml = links.map(url =>
                         `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`
-                    ).join(' ');
+                    ).join('');
                 }
 
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
+                    <td class="text-wrap">${item.tecnico_nome || 'N/A'}</td>
+                    <td>${item.equipe || ''}</td>
                     <td>${item.data_iso ? item.data_iso.split('-').reverse().join('/') : ''}</td>
-                    <td>
-                        <span style="color:var(--vivo-purple)">${item.setor}</span><br>${item.tipo}
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;">${fotosHtml}</div>
-                    </td>
+                    <td>${item.setor}</td>
+                    <td>${item.tipo}</td>
+                    <td class="text-wrap">${item.endereco}</td>
+                    <td class="text-wrap">${item.informacoes || ''}</td>
+                    <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
                     <td style="white-space:nowrap">
                         <button class="btn-action" style="background:var(--warning); color:black" onclick="prepararEdicao('${item.id}')">✎</button>
                         <button class="btn-action" style="background:var(--danger)" onclick="deletar('${item.id}')">✖</button>
@@ -408,17 +435,14 @@
             }).join('');
         }
 
-        window.deletar = async (id) => {
-            if (confirm("Apagar permanentemente?")) {
-                await supabaseClient.from('registros_alerta').delete().eq('id', id);
-                renderTable();
-            }
-        };
+        window.deletar = async (id) => { if (confirm("Apagar permanentemente?")) { await supabaseClient.from('registros_alerta').delete().eq('id', id); renderTable(); } };
 
         window.prepararEdicao = async (id) => {
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             setorSelecionado = data.setor;
             document.getElementById('editId').value = data.id;
+            document.getElementById('equipe').value = data.equipe || "";
+            document.getElementById('tecnicoNome').value = data.tecnico_nome || "";
             document.getElementById('dataRegistro').value = data.data_iso;
             document.getElementById('endereco').value = data.endereco;
             document.getElementById('tipo').value = data.tipo;
