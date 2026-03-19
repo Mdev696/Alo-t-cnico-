@@ -66,7 +66,7 @@
 
         main {
             padding: 15px;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -132,6 +132,31 @@
             cursor: pointer;
         }
 
+        /* --- ESTILOS DOS NOVOS FILTROS --- */
+        .filtros-container {
+            display: flex;
+            gap: 15px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .filtro-item {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .filtro-item label {
+            margin-top: 0;
+            color: var(--vivo-purple);
+        }
+
+        /* ---------------------------------- */
+
         .thumb-foto {
             width: 45px;
             height: 45px;
@@ -150,7 +175,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            min-width: 900px;
+            min-width: 1000px;
         }
 
         th {
@@ -213,6 +238,7 @@
         </header>
 
         <main>
+            <!-- SEÇÃO DE CADASTRO -->
             <div id="cadastro-container">
                 <section id="step1" class="card">
                     <h2>1. Selecione o Setor</h2>
@@ -226,11 +252,14 @@
                     <form id="irregularityForm">
                         <input type="hidden" id="editId" value="">
 
-                        <label>Equipe</label>
-                        <select id="equipe" required>
+                        <label>Empresa</label>
+                        <select id="empresa" required>
                             <option value="">Selecione...</option>
-                            <option value="N1">N1</option>
-                            <option value="REDE EXTERNA">REDE EXTERNA</option>
+                            <option value="TEL">TEL</option>
+                            <option value="HALLEN">HALLEN</option>
+                            <option value="TLP">TLP</option>
+                            <option value="VIVO">VIVO</option>
+                            <option value="ICOMON">ICOMON</option>
                         </select>
 
                         <label>Nome do Técnico</label>
@@ -268,15 +297,34 @@
                 </section>
             </div>
 
+            <!-- SEÇÃO DE HISTÓRICO COM BUSCA E VOLUME -->
             <section class="card">
-                <h2>Histórico Geral (Supabase)</h2>
+                <h2>Histórico Geral</h2>
+
+                <!-- GUIA DE BUSCA E VOLUME -->
+                <div class="filtros-container">
+                    <div class="filtro-item">
+                        <label>🔍 Buscar Ticket</label>
+                        <input type="text" id="buscaTicket" placeholder="Digite o número..." oninput="renderTable()">
+                    </div>
+                    <div class="filtro-item" style="max-width: 150px;">
+                        <label>📊 Volume</label>
+                        <select id="volumeRegistros" onchange="renderTable()">
+                            <option value="10">10 registros</option>
+                            <option value="25">25 registros</option>
+                            <option value="50">50 registros</option>
+                            <option value="100">100 registros</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="table-container">
                     <table id="ticketsTable">
                         <thead>
                             <tr>
                                 <th>Ticket</th>
                                 <th>Técnico</th>
-                                <th>Equipe</th>
+                                <th>Empresa</th>
                                 <th>Data</th>
                                 <th>Setor</th>
                                 <th>Irregularidade</th>
@@ -375,7 +423,7 @@
             const registro = {
                 ticket: ticketGerado,
                 setor: setorSelecionado,
-                equipe: document.getElementById('equipe').value,
+                empresa: document.getElementById('empresa').value,
                 tecnico_nome: document.getElementById('tecnicoNome').value,
                 data_iso: document.getElementById('dataRegistro').value,
                 endereco: document.getElementById('endereco').value,
@@ -403,7 +451,21 @@
         };
 
         async function renderTable() {
-            const { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
+            const termoBusca = document.getElementById('buscaTicket').value;
+            const limite = document.getElementById('volumeRegistros').value;
+
+            let query = supabaseClient
+                .from('registros_alerta')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(parseInt(limite));
+
+            // Filtro de busca por ticket (se digitado)
+            if (termoBusca) {
+                query = query.ilike('ticket', `%${termoBusca}%`);
+            }
+
+            const { data, error } = await query;
             if (error) return;
 
             const tbody = document.querySelector('#ticketsTable tbody');
@@ -420,7 +482,7 @@
                 <tr>
                     <td><b>#${item.ticket}</b></td>
                     <td class="text-wrap">${item.tecnico_nome || 'N/A'}</td>
-                    <td>${item.equipe || ''}</td>
+                    <td>${item.empresa || ''}</td>
                     <td>${item.data_iso ? item.data_iso.split('-').reverse().join('/') : ''}</td>
                     <td>${item.setor}</td>
                     <td>${item.tipo}</td>
@@ -441,7 +503,7 @@
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             setorSelecionado = data.setor;
             document.getElementById('editId').value = data.id;
-            document.getElementById('equipe').value = data.equipe || "";
+            document.getElementById('empresa').value = data.empresa || "";
             document.getElementById('tecnicoNome').value = data.tecnico_nome || "";
             document.getElementById('dataRegistro').value = data.data_iso;
             document.getElementById('endereco').value = data.endereco;
