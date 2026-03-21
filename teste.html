@@ -167,7 +167,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            min-width: 1000px;
+            min-width: 900px;
         }
 
         th {
@@ -279,13 +279,6 @@
                             <option>Poste não equipado</option>
                         </select>
 
-                        <label>Rede</label>
-                        <select id="rede" required>
-                            <option value="">Selecione...</option>
-                            <option value="Aéreo">Aéreo</option>
-                            <option value="Subterrâneo">Subterrâneo</option>
-                        </select>
-
                         <label>Informações Adicionais</label>
                         <textarea id="informacoes" rows="2" required></textarea>
 
@@ -325,7 +318,6 @@
                                 <th>Data</th>
                                 <th>Setor</th>
                                 <th>Irregularidade</th>
-                                <th>Rede</th>
                                 <th>Endereço</th>
                                 <th>Informações</th>
                                 <th>Fotos</th>
@@ -363,7 +355,8 @@
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
                 alert("Acesso negado: " + error.message);
-                btn.innerText = "ENTRAR"; btn.disabled = false;
+                btn.innerText = "ENTRAR";
+                btn.disabled = false;
             } else {
                 showPortal();
             }
@@ -372,24 +365,32 @@
         async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
         async function showPortal() {
+            // INCLUSÃO DA SAUDAÇÃO SEM MUDAR O HTML ORIGINAL
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (user && user.email) {
                 const emailPrefix = user.email.split('@')[0].split('.')[0].split('_')[0];
                 const firstName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+
                 const headerSpan = document.querySelector('header span');
                 if (headerSpan && !document.getElementById('saudacao-user')) {
-                    const containerNome = document.createElement('div');
                     const saudacao = document.createElement('div');
                     saudacao.id = 'saudacao-user';
                     saudacao.style.fontSize = '0.65rem';
                     saudacao.style.fontWeight = 'normal';
                     saudacao.style.marginTop = '2px';
                     saudacao.innerText = `Olá, bem-vindo de volta ${firstName}`;
+                    headerSpan.parentNode.style.display = 'flex';
+                    headerSpan.parentNode.style.flexDirection = 'row';
+                    headerSpan.parentNode.style.justifyContent = 'space-between';
+
+                    // Envolve o span em um container para a saudação ficar embaixo dele
+                    const containerNome = document.createElement('div');
                     headerSpan.parentNode.insertBefore(containerNome, headerSpan);
                     containerNome.appendChild(headerSpan);
                     containerNome.appendChild(saudacao);
                 }
             }
+
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('portal-content').classList.remove('hidden');
             renderTable();
@@ -407,7 +408,10 @@
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const fileName = `${ticket}_${Date.now()}_${i}.${file.name.split('.').pop()}`;
-                const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, file);
+                const { data, error } = await supabaseClient.storage
+                    .from('fotos_irregularidades')
+                    .upload(fileName, file);
+
                 if (!error) {
                     const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
                     urls.push(pUrl.publicUrl);
@@ -421,11 +425,16 @@
             const id = document.getElementById('editId').value;
             const btn = document.getElementById('btnSubmitForm');
             const files = document.getElementById('fotos').files;
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+
+            btn.innerText = "PROCESSANDO...";
+            btn.disabled = true;
 
             const ticketGerado = id ? undefined : Math.floor(10000 + Math.random() * 90000).toString();
+
             let linksFotos = [];
-            if (files.length > 0) linksFotos = await uploadFotos(files, ticketGerado || "edit");
+            if (files.length > 0) {
+                linksFotos = await uploadFotos(files, ticketGerado || "edit");
+            }
 
             const registro = {
                 ticket: ticketGerado,
@@ -435,25 +444,41 @@
                 data_iso: document.getElementById('dataRegistro').value,
                 endereco: document.getElementById('endereco').value,
                 tipo: document.getElementById('tipo').value,
-                rede: document.getElementById('rede').value, // NOVO CAMPO
                 informacoes: document.getElementById('informacoes').value,
                 qtd_fotos: files.length > 0 ? files.length : undefined,
                 fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined
             };
 
-            const res = id ? await supabaseClient.from('registros_alerta').update(registro).eq('id', id)
-                : await supabaseClient.from('registros_alerta').insert([registro]);
+            let res;
+            if (id) {
+                res = await supabaseClient.from('registros_alerta').update(registro).eq('id', id);
+            } else {
+                res = await supabaseClient.from('registros_alerta').insert([registro]);
+            }
 
             if (res.error) alert("Erro: " + res.error.message);
-            else { alert("Salvo com sucesso!"); resetForm(); renderTable(); }
-            btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
+            else {
+                alert("Salvo com sucesso!");
+                resetForm();
+                renderTable();
+            }
+            btn.innerText = "SALVAR NO BANCO";
+            btn.disabled = false;
         };
 
         async function renderTable() {
             const termoBusca = document.getElementById('buscaTicket').value;
             const limite = document.getElementById('volumeRegistros').value;
-            let query = supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false }).limit(parseInt(limite));
-            if (termoBusca) query = query.ilike('ticket', `%${termoBusca}%`);
+
+            let query = supabaseClient
+                .from('registros_alerta')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(parseInt(limite));
+
+            if (termoBusca) {
+                query = query.ilike('ticket', `%${termoBusca}%`);
+            }
 
             const { data, error } = await query;
             if (error) return;
@@ -463,8 +488,11 @@
                 let fotosHtml = '';
                 if (item.fotos_urls) {
                     const links = item.fotos_urls.split(',');
-                    fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
+                    fotosHtml = links.map(url =>
+                        `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`
+                    ).join('');
                 }
+
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
@@ -473,7 +501,7 @@
                     <td>${item.data_iso ? item.data_iso.split('-').reverse().join('/') : ''}</td>
                     <td>${item.setor}</td>
                     <td>${item.tipo}</td>
-                    <td>${item.rede || 'N/A'}</td> <td class="text-wrap">${item.endereco}</td>
+                    <td class="text-wrap">${item.endereco}</td>
                     <td class="text-wrap">${item.informacoes || ''}</td>
                     <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
                     <td style="white-space:nowrap">
@@ -495,7 +523,6 @@
             document.getElementById('dataRegistro').value = data.data_iso;
             document.getElementById('endereco').value = data.endereco;
             document.getElementById('tipo').value = data.tipo;
-            document.getElementById('rede').value = data.rede || ""; // CARREGA REDE NO FORM
             document.getElementById('informacoes').value = data.informacoes;
             document.getElementById('step1').classList.add('hidden');
             document.getElementById('step2').classList.remove('hidden');
