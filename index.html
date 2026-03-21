@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ALO TECNICO - Vivo</title>
+    <title>ALO TECNICO</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#660099">
@@ -52,7 +52,7 @@
         header {
             background-color: var(--vivo-purple);
             color: var(--white);
-            padding: 15px;
+            padding: 10px 15px;
             text-align: center;
             font-weight: bold;
             position: sticky;
@@ -62,6 +62,21 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            flex-direction: column;
+        }
+
+        .header-top {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #user-greeting {
+            font-size: 0.75rem;
+            font-weight: normal;
+            margin-top: 5px;
+            opacity: 0.9;
         }
 
         .btn-logout {
@@ -190,12 +205,26 @@
             padding: 8px;
             border-radius: 4px;
             cursor: pointer;
+            margin-right: 5px;
         }
 
         .text-wrap {
             max-width: 150px;
             word-wrap: break-word;
             white-space: normal;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--vivo-grey-text);
+        }
+
+        .remember-me input {
+            width: auto;
         }
     </style>
 </head>
@@ -204,12 +233,18 @@
 
     <div id="login-screen">
         <div class="card" style="width: 90%; max-width: 350px;">
-            <h2 style="text-align: center;">Acesso Vivo</h2>
+            <h2 style="text-align: center;">Acesso ao Portal</h2>
             <form id="loginForm">
                 <label>E-mail</label>
-                <input type="email" id="loginEmail" placeholder="usuario@vivo.com.br" required>
+                <input type="email" id="loginEmail" placeholder="Digite seu e-mail" required>
                 <label>Senha</label>
                 <input type="password" id="loginPass" required>
+
+                <div class="remember-me">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Lembrar meu acesso</span>
+                </div>
+
                 <button type="submit" class="btn-submit" id="loginBtn">ENTRAR</button>
             </form>
         </div>
@@ -217,9 +252,12 @@
 
     <div id="portal-content" class="hidden">
         <header>
-            <div style="width: 50px;"></div>
-            <span>ALÔ TÉCNICO</span>
-            <button class="btn-logout" onclick="logout()">SAIR</button>
+            <div class="header-top">
+                <div style="width: 50px;"></div>
+                <span>ALÔ TÉCNICO</span>
+                <button class="btn-logout" onclick="logout()">SAIR</button>
+            </div>
+            <div id="user-greeting"></div>
         </header>
 
         <main>
@@ -235,6 +273,7 @@
                     <h2 id="display-sector">Setor: -</h2>
                     <form id="irregularityForm">
                         <input type="hidden" id="editId" value="">
+                        <input type="hidden" id="geoCoords" value="">
 
                         <label>Empresa</label>
                         <select id="empresa" required>
@@ -252,8 +291,8 @@
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
 
-                        <label>Fotos (Câmera ou Galeria)</label>
-                        <input type="file" id="fotos" accept="image/*" multiple>
+                        <label>Fotos (Solicita Localização)</label>
+                        <input type="file" id="fotos" accept="image/*" multiple onchange="capturarLocalizacao()">
 
                         <label>Endereço Completo</label>
                         <input type="text" id="endereco" placeholder="Rua, Número, Bairro" required>
@@ -297,12 +336,10 @@
                             <tr>
                                 <th>Ticket</th>
                                 <th>Técnico</th>
-                                <th>Empresa</th>
                                 <th>Data</th>
-                                <th>Setor</th>
                                 <th>Tipo</th>
-                                <th>Rede</th>
                                 <th>Endereço</th>
+                                <th>Localização</th>
                                 <th>Fotos</th>
                                 <th>Ações</th>
                             </tr>
@@ -315,54 +352,74 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO SUPABASE
         const SUPABASE_URL = 'https://cfjedufolkjrsajflfox.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let setorSelecionado = "";
 
-        // REGISTRO DO SERVICE WORKER (PWA)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log("PWA: Service Worker registrado!"))
-                    .catch(err => console.log("PWA: Erro no registro", err));
-            });
-        }
+        window.onload = () => {
+            const savedEmail = localStorage.getItem('saved_email');
+            const savedPass = localStorage.getItem('saved_pass');
+            if (savedEmail && savedPass) {
+                document.getElementById('loginEmail').value = savedEmail;
+                document.getElementById('loginPass').value = savedPass;
+                document.getElementById('rememberMe').checked = true;
+            }
+        };
 
-        // VERIFICAR SESSÃO
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) showPortal();
         }
         checkSession();
 
-        // LOGIN
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPass').value;
+            const remember = document.getElementById('rememberMe').checked;
             const btn = document.getElementById('loginBtn');
 
-            btn.innerText = "VALIDANDO...";
-            btn.disabled = true;
+            btn.innerText = "VALIDANDO..."; btn.disabled = true;
 
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
                 alert("Erro: Credenciais inválidas");
                 btn.innerText = "ENTRAR"; btn.disabled = false;
             } else {
+                if (remember) {
+                    localStorage.setItem('saved_email', email);
+                    localStorage.setItem('saved_pass', password);
+                } else {
+                    localStorage.removeItem('saved_email');
+                    localStorage.removeItem('saved_pass');
+                }
                 showPortal();
             }
         };
 
         async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
-        function showPortal() {
+        async function showPortal() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('portal-content').classList.remove('hidden');
+
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const userIdentifier = user.user_metadata.full_name || user.email;
+            document.getElementById('user-greeting').innerText = `Olá, bem-vindo de volta ${userIdentifier}`;
+
             renderTable();
+        }
+
+        function capturarLocalizacao() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    document.getElementById('geoCoords').value = `${pos.coords.latitude},${pos.coords.longitude}`;
+                }, (err) => {
+                    console.error("Erro GPS:", err);
+                });
+            }
         }
 
         function selectSector(setor) {
@@ -373,14 +430,12 @@
             document.getElementById('dataRegistro').value = new Date().toISOString().split('T')[0];
         }
 
-        // UPLOAD DE IMAGENS
         async function uploadFotos(files, ticket) {
             const urls = [];
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const fileName = `fotos/${ticket}_${Date.now()}_${i}.png`;
                 const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, file);
-
                 if (!error) {
                     const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
                     urls.push(pUrl.publicUrl);
@@ -389,7 +444,6 @@
             return urls;
         }
 
-        // SALVAR FORMULÁRIO
         document.getElementById('irregularityForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('editId').value;
@@ -412,19 +466,18 @@
                 tipo: document.getElementById('tipo').value,
                 rede: document.getElementById('rede').value,
                 informacoes: document.getElementById('informacoes').value,
+                localizacao: document.getElementById('geoCoords').value,
                 fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined
             };
 
             const res = id ? await supabaseClient.from('registros_alerta').update(registro).eq('id', id)
                 : await supabaseClient.from('registros_alerta').insert([registro]);
 
-            if (res.error) alert("Erro ao salvar: " + res.error.message);
+            if (res.error) alert("Erro: " + res.error.message);
             else { alert("Sucesso!"); resetForm(); renderTable(); }
-
             btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
-        // RENDERIZAR TABELA
         async function renderTable() {
             let { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
             if (error) return;
@@ -436,23 +489,32 @@
                     const links = item.fotos_urls.split(',');
                     fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
                 }
+                const mapLink = item.localizacao ? `<a href="https://www.google.com/maps?q=${item.localizacao}" target="_blank" style="color:var(--vivo-purple)">📍 Ver Mapa</a>` : 'Não disp.';
+
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
                     <td class="text-wrap">${item.tecnico_nome}</td>
-                    <td>${item.empresa}</td>
                     <td>${item.data_iso.split('-').reverse().join('/')}</td>
-                    <td>${item.setor}</td>
                     <td>${item.tipo}</td>
-                    <td>${item.rede || ''}</td>
                     <td class="text-wrap">${item.endereco}</td>
+                    <td>${mapLink}</td>
                     <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
                     <td>
-                        <button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')">✎</button>
+                        <button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')" title="Editar">✎</button>
+                        <button class="btn-action" style="background:var(--danger); color:white" onclick="excluirRegistro('${item.id}')" title="Excluir">🗑️</button>
                     </td>
                 </tr>`;
             }).join('');
         }
+
+        window.excluirRegistro = async (id) => {
+            if (confirm("Deseja realmente excluir este registro? Esta ação não pode ser desfeita.")) {
+                const { error } = await supabaseClient.from('registros_alerta').delete().eq('id', id);
+                if (error) alert("Erro ao excluir: " + error.message);
+                else { alert("Registro removido!"); renderTable(); }
+            }
+        };
 
         window.prepararEdicao = async (id) => {
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
@@ -465,6 +527,7 @@
             document.getElementById('tipo').value = data.tipo;
             document.getElementById('rede').value = data.rede || "";
             document.getElementById('informacoes').value = data.informacoes;
+            document.getElementById('geoCoords').value = data.localizacao || "";
             document.getElementById('step1').classList.add('hidden');
             document.getElementById('step2').classList.remove('hidden');
         };
@@ -472,6 +535,7 @@
         function resetForm() {
             document.getElementById('irregularityForm').reset();
             document.getElementById('editId').value = "";
+            document.getElementById('geoCoords').value = "";
             document.getElementById('step2').classList.add('hidden');
             document.getElementById('step1').classList.remove('hidden');
         }
