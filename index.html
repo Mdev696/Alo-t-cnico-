@@ -8,12 +8,13 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#660099">
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon"
-        href="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Vivo_logo.svg/192px-Vivo_logo.svg.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --vivo-purple: #660099;
@@ -32,6 +33,7 @@
             padding: 0;
             background-color: var(--vivo-grey-bg);
             color: var(--dark);
+            -webkit-tap-highlight-color: transparent;
         }
 
         #login-screen {
@@ -105,6 +107,12 @@
             color: var(--vivo-purple);
             font-weight: bold;
             cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-sector:active {
+            background: var(--vivo-purple);
+            color: white;
         }
 
         label {
@@ -119,7 +127,7 @@
         select,
         textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 1rem;
@@ -149,7 +157,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            min-width: 1000px;
+            min-width: 900px;
         }
 
         th {
@@ -163,7 +171,6 @@
         td {
             padding: 10px 8px;
             border-bottom: 1px solid #eee;
-            vertical-align: middle;
         }
 
         .hidden {
@@ -175,18 +182,14 @@
             height: 45px;
             object-fit: cover;
             border-radius: 4px;
-            cursor: pointer;
             border: 1px solid #ddd;
         }
 
         .btn-action {
             border: none;
-            padding: 6px;
+            padding: 8px;
             border-radius: 4px;
-            color: white;
             cursor: pointer;
-            font-size: 0.8rem;
-            margin-right: 2px;
         }
 
         .text-wrap {
@@ -204,7 +207,7 @@
             <h2 style="text-align: center;">Acesso Vivo</h2>
             <form id="loginForm">
                 <label>E-mail</label>
-                <input type="email" id="loginEmail" required>
+                <input type="email" id="loginEmail" placeholder="usuario@vivo.com.br" required>
                 <label>Senha</label>
                 <input type="password" id="loginPass" required>
                 <button type="submit" class="btn-submit" id="loginBtn">ENTRAR</button>
@@ -249,11 +252,11 @@
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
 
-                        <label>Fotos</label>
-                        <input type="file" id="fotos" accept="image/*" capture="environment" multiple>
+                        <label>Fotos (Câmera ou Galeria)</label>
+                        <input type="file" id="fotos" accept="image/*" multiple>
 
                         <label>Endereço Completo</label>
-                        <input type="text" id="endereco" required>
+                        <input type="text" id="endereco" placeholder="Rua, Número, Bairro" required>
 
                         <label>Tipo de Irregularidade</label>
                         <select id="tipo" required>
@@ -277,11 +280,11 @@
                         </select>
 
                         <label>Informações Adicionais</label>
-                        <textarea id="informacoes" rows="2" required></textarea>
+                        <textarea id="informacoes" rows="3" placeholder="Detalhes técnicos..." required></textarea>
 
                         <button type="submit" id="btnSubmitForm" class="btn-submit">SALVAR NO BANCO</button>
                         <button type="button" onclick="resetForm()"
-                            style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:10px; cursor:pointer;">Voltar</button>
+                            style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:15px; cursor:pointer;">Voltar</button>
                     </form>
                 </section>
             </div>
@@ -297,10 +300,9 @@
                                 <th>Empresa</th>
                                 <th>Data</th>
                                 <th>Setor</th>
-                                <th>Irregularidade</th>
+                                <th>Tipo</th>
                                 <th>Rede</th>
                                 <th>Endereço</th>
-                                <th>Informações</th>
                                 <th>Fotos</th>
                                 <th>Ações</th>
                             </tr>
@@ -313,36 +315,42 @@
     </div>
 
     <script>
-        // REGISTRO DO SERVICE WORKER PARA PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log("PWA Ativo!"))
-                .catch(err => console.log("Erro PWA:", err));
-        }
-
+        // CONFIGURAÇÃO SUPABASE
         const SUPABASE_URL = 'https://cfjedufolkjrsajflfox.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
-
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let setorSelecionado = "";
 
+        // REGISTRO DO SERVICE WORKER (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log("PWA: Service Worker registrado!"))
+                    .catch(err => console.log("PWA: Erro no registro", err));
+            });
+        }
+
+        // VERIFICAR SESSÃO
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) showPortal();
         }
         checkSession();
 
+        // LOGIN
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPass').value;
             const btn = document.getElementById('loginBtn');
+
             btn.innerText = "VALIDANDO...";
             btn.disabled = true;
 
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
-                alert("Erro: " + error.message);
+                alert("Erro: Credenciais inválidas");
                 btn.innerText = "ENTRAR"; btn.disabled = false;
             } else {
                 showPortal();
@@ -351,7 +359,7 @@
 
         async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
-        async function showPortal() {
+        function showPortal() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('portal-content').classList.remove('hidden');
             renderTable();
@@ -365,12 +373,14 @@
             document.getElementById('dataRegistro').value = new Date().toISOString().split('T')[0];
         }
 
+        // UPLOAD DE IMAGENS
         async function uploadFotos(files, ticket) {
             const urls = [];
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const fileName = `${ticket}_${Date.now()}_${i}.${file.name.split('.').pop()}`;
+                const fileName = `fotos/${ticket}_${Date.now()}_${i}.png`;
                 const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, file);
+
                 if (!error) {
                     const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
                     urls.push(pUrl.publicUrl);
@@ -379,12 +389,14 @@
             return urls;
         }
 
+        // SALVAR FORMULÁRIO
         document.getElementById('irregularityForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('editId').value;
             const btn = document.getElementById('btnSubmitForm');
             const files = document.getElementById('fotos').files;
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+
+            btn.innerText = "ENVIANDO..."; btn.disabled = true;
 
             const ticketGerado = id ? undefined : Math.floor(10000 + Math.random() * 90000).toString();
             let linksFotos = [];
@@ -400,18 +412,19 @@
                 tipo: document.getElementById('tipo').value,
                 rede: document.getElementById('rede').value,
                 informacoes: document.getElementById('informacoes').value,
-                qtd_fotos: files.length > 0 ? files.length : undefined,
                 fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined
             };
 
             const res = id ? await supabaseClient.from('registros_alerta').update(registro).eq('id', id)
                 : await supabaseClient.from('registros_alerta').insert([registro]);
 
-            if (res.error) alert("Erro: " + res.error.message);
-            else { alert("Salvo com sucesso!"); resetForm(); renderTable(); }
+            if (res.error) alert("Erro ao salvar: " + res.error.message);
+            else { alert("Sucesso!"); resetForm(); renderTable(); }
+
             btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
+        // RENDERIZAR TABELA
         async function renderTable() {
             let { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
             if (error) return;
@@ -433,10 +446,9 @@
                     <td>${item.tipo}</td>
                     <td>${item.rede || ''}</td>
                     <td class="text-wrap">${item.endereco}</td>
-                    <td class="text-wrap">${item.informacoes}</td>
                     <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
                     <td>
-                        <button class="btn-action" style="background:var(--warning); color:black" onclick="prepararEdicao('${item.id}')">✎</button>
+                        <button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')">✎</button>
                     </td>
                 </tr>`;
             }).join('');
