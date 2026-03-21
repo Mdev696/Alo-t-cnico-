@@ -4,16 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ALO TECNICO - Vivo</title>
+    <title>ALO TECNICO</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#660099">
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon"
-        href="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Vivo_logo.svg/192px-Vivo_logo.svg.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --vivo-purple: #660099;
@@ -32,6 +33,7 @@
             padding: 0;
             background-color: var(--vivo-grey-bg);
             color: var(--dark);
+            -webkit-tap-highlight-color: transparent;
         }
 
         #login-screen {
@@ -50,7 +52,7 @@
         header {
             background-color: var(--vivo-purple);
             color: var(--white);
-            padding: 15px;
+            padding: 10px 15px;
             text-align: center;
             font-weight: bold;
             position: sticky;
@@ -60,6 +62,21 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            flex-direction: column;
+        }
+
+        .header-top {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #user-greeting {
+            font-size: 0.75rem;
+            font-weight: normal;
+            margin-top: 5px;
+            opacity: 0.9;
         }
 
         .btn-logout {
@@ -105,6 +122,12 @@
             color: var(--vivo-purple);
             font-weight: bold;
             cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-sector:active {
+            background: var(--vivo-purple);
+            color: white;
         }
 
         label {
@@ -119,7 +142,7 @@
         select,
         textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 1rem;
@@ -149,7 +172,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            min-width: 1000px;
+            min-width: 900px;
         }
 
         th {
@@ -163,7 +186,6 @@
         td {
             padding: 10px 8px;
             border-bottom: 1px solid #eee;
-            vertical-align: middle;
         }
 
         .hidden {
@@ -175,24 +197,34 @@
             height: 45px;
             object-fit: cover;
             border-radius: 4px;
-            cursor: pointer;
             border: 1px solid #ddd;
         }
 
         .btn-action {
             border: none;
-            padding: 6px;
+            padding: 8px;
             border-radius: 4px;
-            color: white;
             cursor: pointer;
-            font-size: 0.8rem;
-            margin-right: 2px;
+            margin-right: 5px;
         }
 
         .text-wrap {
             max-width: 150px;
             word-wrap: break-word;
             white-space: normal;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--vivo-grey-text);
+        }
+
+        .remember-me input {
+            width: auto;
         }
     </style>
 </head>
@@ -201,12 +233,18 @@
 
     <div id="login-screen">
         <div class="card" style="width: 90%; max-width: 350px;">
-            <h2 style="text-align: center;">Acesso Vivo</h2>
+            <h2 style="text-align: center;">Acesso ao Portal</h2>
             <form id="loginForm">
                 <label>E-mail</label>
-                <input type="email" id="loginEmail" required>
+                <input type="email" id="loginEmail" placeholder="Digite seu e-mail" required>
                 <label>Senha</label>
                 <input type="password" id="loginPass" required>
+
+                <div class="remember-me">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Lembrar meu acesso</span>
+                </div>
+
                 <button type="submit" class="btn-submit" id="loginBtn">ENTRAR</button>
             </form>
         </div>
@@ -214,9 +252,12 @@
 
     <div id="portal-content" class="hidden">
         <header>
-            <div style="width: 50px;"></div>
-            <span>ALÔ TÉCNICO</span>
-            <button class="btn-logout" onclick="logout()">SAIR</button>
+            <div class="header-top">
+                <div style="width: 50px;"></div>
+                <span>ALÔ TÉCNICO</span>
+                <button class="btn-logout" onclick="logout()">SAIR</button>
+            </div>
+            <div id="user-greeting"></div>
         </header>
 
         <main>
@@ -232,6 +273,7 @@
                     <h2 id="display-sector">Setor: -</h2>
                     <form id="irregularityForm">
                         <input type="hidden" id="editId" value="">
+                        <input type="hidden" id="geoCoords" value="">
 
                         <label>Empresa</label>
                         <select id="empresa" required>
@@ -249,11 +291,11 @@
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
 
-                        <label>Fotos</label>
-                        <input type="file" id="fotos" accept="image/*" capture="environment" multiple>
+                        <label>Fotos (Solicita Localização)</label>
+                        <input type="file" id="fotos" accept="image/*" multiple onchange="capturarLocalizacao()">
 
                         <label>Endereço Completo</label>
-                        <input type="text" id="endereco" required>
+                        <input type="text" id="endereco" placeholder="Rua, Número, Bairro" required>
 
                         <label>Tipo de Irregularidade</label>
                         <select id="tipo" required>
@@ -277,11 +319,11 @@
                         </select>
 
                         <label>Informações Adicionais</label>
-                        <textarea id="informacoes" rows="2" required></textarea>
+                        <textarea id="informacoes" rows="3" placeholder="Detalhes técnicos..." required></textarea>
 
                         <button type="submit" id="btnSubmitForm" class="btn-submit">SALVAR NO BANCO</button>
                         <button type="button" onclick="resetForm()"
-                            style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:10px; cursor:pointer;">Voltar</button>
+                            style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:15px; cursor:pointer;">Voltar</button>
                     </form>
                 </section>
             </div>
@@ -294,13 +336,10 @@
                             <tr>
                                 <th>Ticket</th>
                                 <th>Técnico</th>
-                                <th>Empresa</th>
                                 <th>Data</th>
-                                <th>Setor</th>
-                                <th>Irregularidade</th>
-                                <th>Rede</th>
+                                <th>Tipo</th>
                                 <th>Endereço</th>
-                                <th>Informações</th>
+                                <th>Localização</th>
                                 <th>Fotos</th>
                                 <th>Ações</th>
                             </tr>
@@ -313,18 +352,21 @@
     </div>
 
     <script>
-        // REGISTRO DO SERVICE WORKER PARA PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log("PWA Ativo!"))
-                .catch(err => console.log("Erro PWA:", err));
-        }
-
         const SUPABASE_URL = 'https://cfjedufolkjrsajflfox.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
-
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let setorSelecionado = "";
+
+        window.onload = () => {
+            const savedEmail = localStorage.getItem('saved_email');
+            const savedPass = localStorage.getItem('saved_pass');
+            if (savedEmail && savedPass) {
+                document.getElementById('loginEmail').value = savedEmail;
+                document.getElementById('loginPass').value = savedPass;
+                document.getElementById('rememberMe').checked = true;
+            }
+        };
 
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -336,15 +378,23 @@
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPass').value;
+            const remember = document.getElementById('rememberMe').checked;
             const btn = document.getElementById('loginBtn');
-            btn.innerText = "VALIDANDO...";
-            btn.disabled = true;
+
+            btn.innerText = "VALIDANDO..."; btn.disabled = true;
 
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
-                alert("Erro: " + error.message);
+                alert("Erro: Credenciais inválidas");
                 btn.innerText = "ENTRAR"; btn.disabled = false;
             } else {
+                if (remember) {
+                    localStorage.setItem('saved_email', email);
+                    localStorage.setItem('saved_pass', password);
+                } else {
+                    localStorage.removeItem('saved_email');
+                    localStorage.removeItem('saved_pass');
+                }
                 showPortal();
             }
         };
@@ -354,7 +404,22 @@
         async function showPortal() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('portal-content').classList.remove('hidden');
+
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const userIdentifier = user.user_metadata.full_name || user.email;
+            document.getElementById('user-greeting').innerText = `Olá, bem-vindo de volta ${userIdentifier}`;
+
             renderTable();
+        }
+
+        function capturarLocalizacao() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    document.getElementById('geoCoords').value = `${pos.coords.latitude},${pos.coords.longitude}`;
+                }, (err) => {
+                    console.error("Erro GPS:", err);
+                });
+            }
         }
 
         function selectSector(setor) {
@@ -369,7 +434,7 @@
             const urls = [];
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const fileName = `${ticket}_${Date.now()}_${i}.${file.name.split('.').pop()}`;
+                const fileName = `fotos/${ticket}_${Date.now()}_${i}.png`;
                 const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, file);
                 if (!error) {
                     const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
@@ -384,7 +449,8 @@
             const id = document.getElementById('editId').value;
             const btn = document.getElementById('btnSubmitForm');
             const files = document.getElementById('fotos').files;
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+
+            btn.innerText = "ENVIANDO..."; btn.disabled = true;
 
             const ticketGerado = id ? undefined : Math.floor(10000 + Math.random() * 90000).toString();
             let linksFotos = [];
@@ -400,7 +466,7 @@
                 tipo: document.getElementById('tipo').value,
                 rede: document.getElementById('rede').value,
                 informacoes: document.getElementById('informacoes').value,
-                qtd_fotos: files.length > 0 ? files.length : undefined,
+                localizacao: document.getElementById('geoCoords').value,
                 fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined
             };
 
@@ -408,7 +474,7 @@
                 : await supabaseClient.from('registros_alerta').insert([registro]);
 
             if (res.error) alert("Erro: " + res.error.message);
-            else { alert("Salvo com sucesso!"); resetForm(); renderTable(); }
+            else { alert("Sucesso!"); resetForm(); renderTable(); }
             btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
@@ -423,24 +489,32 @@
                     const links = item.fotos_urls.split(',');
                     fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
                 }
+                const mapLink = item.localizacao ? `<a href="https://www.google.com/maps?q=${item.localizacao}" target="_blank" style="color:var(--vivo-purple)">📍 Ver Mapa</a>` : 'Não disp.';
+
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
                     <td class="text-wrap">${item.tecnico_nome}</td>
-                    <td>${item.empresa}</td>
                     <td>${item.data_iso.split('-').reverse().join('/')}</td>
-                    <td>${item.setor}</td>
                     <td>${item.tipo}</td>
-                    <td>${item.rede || ''}</td>
                     <td class="text-wrap">${item.endereco}</td>
-                    <td class="text-wrap">${item.informacoes}</td>
+                    <td>${mapLink}</td>
                     <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
                     <td>
-                        <button class="btn-action" style="background:var(--warning); color:black" onclick="prepararEdicao('${item.id}')">✎</button>
+                        <button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')" title="Editar">✎</button>
+                        <button class="btn-action" style="background:var(--danger); color:white" onclick="excluirRegistro('${item.id}')" title="Excluir">🗑️</button>
                     </td>
                 </tr>`;
             }).join('');
         }
+
+        window.excluirRegistro = async (id) => {
+            if (confirm("Deseja realmente excluir este registro? Esta ação não pode ser desfeita.")) {
+                const { error } = await supabaseClient.from('registros_alerta').delete().eq('id', id);
+                if (error) alert("Erro ao excluir: " + error.message);
+                else { alert("Registro removido!"); renderTable(); }
+            }
+        };
 
         window.prepararEdicao = async (id) => {
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
@@ -453,6 +527,7 @@
             document.getElementById('tipo').value = data.tipo;
             document.getElementById('rede').value = data.rede || "";
             document.getElementById('informacoes').value = data.informacoes;
+            document.getElementById('geoCoords').value = data.localizacao || "";
             document.getElementById('step1').classList.add('hidden');
             document.getElementById('step2').classList.remove('hidden');
         };
@@ -460,6 +535,7 @@
         function resetForm() {
             document.getElementById('irregularityForm').reset();
             document.getElementById('editId').value = "";
+            document.getElementById('geoCoords').value = "";
             document.getElementById('step2').classList.add('hidden');
             document.getElementById('step1').classList.remove('hidden');
         }

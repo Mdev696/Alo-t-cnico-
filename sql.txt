@@ -1,17 +1,19 @@
 -- 1. LIMPEZA TOTAL (Isso apagará os dados antigos para recriar com as colunas certas)
 drop table if exists registros_alerta;
 
--- 2. CRIAÇÃO DA TABELA (Colunas batendo com o seu JavaScript)
+-- 2. CRIAÇÃO DA TABELA (Colunas 100% compatíveis com o seu código HTML/JS)
 create table registros_alerta (
   id uuid default gen_random_uuid () primary key,
   ticket text,
   tecnico_nome text,
-  empresa text, -- Alterado de 'equipe' para 'empresa' para bater com o HTML
+  empresa text, 
   setor text,
   data_iso date,
   endereco text,
   tipo text,
+  rede text, -- Adicionado para salvar (Aéreo/Subterrâneo)
   informacoes text,
+  localizacao text, -- NOVA COLUNA para as coordenadas GPS
   qtd_fotos int,
   fotos_urls text,
   status text default 'Pendente',
@@ -25,5 +27,10 @@ alter table registros_alerta enable row level security;
 create policy "Acesso Total Autenticado" on registros_alerta for all using (auth.role () = 'authenticated');
 
 -- 5. ATUALIZAÇÃO DO CACHE DO SISTEMA
-notify pgrst,
-'reload schema';
+notify pgrst, 'reload schema';
+
+
+==================================================================================================================================
+
+
+PWA -  PARA APLICATIVO
