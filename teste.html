@@ -406,8 +406,16 @@
             document.getElementById('portal-content').classList.remove('hidden');
 
             const { data: { user } } = await supabaseClient.auth.getUser();
-            const userIdentifier = user.user_metadata.full_name || user.email;
-            document.getElementById('user-greeting').innerText = `Olá, bem-vindo de volta ${userIdentifier}`;
+
+            // LÓGICA PARA PEGAR APENAS O PRIMEIRO NOME:
+            // 1. Tenta pegar o nome completo do cadastro (user_metadata)
+            // 2. Se não tiver, pega a parte do e-mail antes do "@"
+            // 3. Pega apenas a primeira palavra e coloca a primeira letra em Maiúsculo
+            let rawName = user.user_metadata.full_name || user.email.split('@')[0];
+            let firstName = rawName.split(/[\s._]/)[0]; // Divide por espaço, ponto ou underline
+            firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+
+            document.getElementById('user-greeting').innerText = `Olá, bem-vindo de volta ${firstName}`;
 
             renderTable();
         }

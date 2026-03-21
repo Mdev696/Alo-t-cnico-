@@ -5,7 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ALO TECNICO - Vivo</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#660099">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --vivo-purple: #660099;
@@ -24,6 +33,7 @@
             padding: 0;
             background-color: var(--vivo-grey-bg);
             color: var(--dark);
+            -webkit-tap-highlight-color: transparent;
         }
 
         #login-screen {
@@ -97,6 +107,12 @@
             color: var(--vivo-purple);
             font-weight: bold;
             cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-sector:active {
+            background: var(--vivo-purple);
+            color: white;
         }
 
         label {
@@ -111,7 +127,7 @@
         select,
         textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 1rem;
@@ -130,32 +146,6 @@
             font-weight: bold;
             margin-top: 20px;
             cursor: pointer;
-        }
-
-        .filtros-container {
-            display: flex;
-            gap: 15px;
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #eee;
-            align-items: flex-end;
-            flex-wrap: wrap;
-        }
-
-        .filtro-item {
-            flex: 1;
-            min-width: 180px;
-        }
-
-        .thumb-foto {
-            width: 45px;
-            height: 45px;
-            object-fit: cover;
-            border-radius: 4px;
-            cursor: pointer;
-            border: 1px solid #ddd;
         }
 
         .table-container {
@@ -181,22 +171,25 @@
         td {
             padding: 10px 8px;
             border-bottom: 1px solid #eee;
-            vertical-align: middle;
-            line-height: 1.2;
-        }
-
-        .btn-action {
-            border: none;
-            padding: 6px;
-            border-radius: 4px;
-            color: white;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-right: 2px;
         }
 
         .hidden {
             display: none !important;
+        }
+
+        .thumb-foto {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .btn-action {
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
         .text-wrap {
@@ -214,7 +207,7 @@
             <h2 style="text-align: center;">Acesso Vivo</h2>
             <form id="loginForm">
                 <label>E-mail</label>
-                <input type="email" id="loginEmail" required>
+                <input type="email" id="loginEmail" placeholder="usuario@vivo.com.br" required>
                 <label>Senha</label>
                 <input type="password" id="loginPass" required>
                 <button type="submit" class="btn-submit" id="loginBtn">ENTRAR</button>
@@ -259,11 +252,11 @@
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
 
-                        <label>Fotos</label>
-                        <input type="file" id="fotos" accept="image/*" capture="environment" multiple>
+                        <label>Fotos (Câmera ou Galeria)</label>
+                        <input type="file" id="fotos" accept="image/*" multiple>
 
                         <label>Endereço Completo</label>
-                        <input type="text" id="endereco" required>
+                        <input type="text" id="endereco" placeholder="Rua, Número, Bairro" required>
 
                         <label>Tipo de Irregularidade</label>
                         <select id="tipo" required>
@@ -279,35 +272,25 @@
                             <option>Poste não equipado</option>
                         </select>
 
+                        <label>Rede</label>
+                        <select id="rede" required>
+                            <option value="">Selecione...</option>
+                            <option value="Aéreo">Aéreo</option>
+                            <option value="Subterrâneo">Subterrâneo</option>
+                        </select>
+
                         <label>Informações Adicionais</label>
-                        <textarea id="informacoes" rows="2" required></textarea>
+                        <textarea id="informacoes" rows="3" placeholder="Detalhes técnicos..." required></textarea>
 
                         <button type="submit" id="btnSubmitForm" class="btn-submit">SALVAR NO BANCO</button>
                         <button type="button" onclick="resetForm()"
-                            style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:10px; cursor:pointer;">Voltar</button>
+                            style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:15px; cursor:pointer;">Voltar</button>
                     </form>
                 </section>
             </div>
 
             <section class="card">
                 <h2>Histórico Geral</h2>
-
-                <div class="filtros-container">
-                    <div class="filtro-item">
-                        <label>🔍 Buscar Ticket</label>
-                        <input type="text" id="buscaTicket" placeholder="Digite o número..." oninput="renderTable()">
-                    </div>
-                    <div class="filtro-item" style="max-width: 150px;">
-                        <label>📊 Volume</label>
-                        <select id="volumeRegistros" onchange="renderTable()">
-                            <option value="10">10 registros</option>
-                            <option value="25">25 registros</option>
-                            <option value="50">50 registros</option>
-                            <option value="100">100 registros</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="table-container">
                     <table id="ticketsTable">
                         <thead>
@@ -317,9 +300,9 @@
                                 <th>Empresa</th>
                                 <th>Data</th>
                                 <th>Setor</th>
-                                <th>Irregularidade</th>
+                                <th>Tipo</th>
+                                <th>Rede</th>
                                 <th>Endereço</th>
-                                <th>Informações</th>
                                 <th>Fotos</th>
                                 <th>Ações</th>
                             </tr>
@@ -332,31 +315,43 @@
     </div>
 
     <script>
+        // CONFIGURAÇÃO SUPABASE
         const SUPABASE_URL = 'https://cfjedufolkjrsajflfox.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
-
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let setorSelecionado = "";
 
+        // REGISTRO DO SERVICE WORKER (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log("PWA: Service Worker registrado!"))
+                    .catch(err => console.log("PWA: Erro no registro", err));
+            });
+        }
+
+        // VERIFICAR SESSÃO
         async function checkSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) showPortal();
         }
         checkSession();
 
+        // LOGIN
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPass').value;
             const btn = document.getElementById('loginBtn');
+
             btn.innerText = "VALIDANDO...";
             btn.disabled = true;
 
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
-                alert("Acesso negado: " + error.message);
-                btn.innerText = "ENTRAR";
-                btn.disabled = false;
+                alert("Erro: Credenciais inválidas");
+                btn.innerText = "ENTRAR"; btn.disabled = false;
             } else {
                 showPortal();
             }
@@ -364,33 +359,7 @@
 
         async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
-        async function showPortal() {
-            // INCLUSÃO DA SAUDAÇÃO SEM MUDAR O HTML ORIGINAL
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (user && user.email) {
-                const emailPrefix = user.email.split('@')[0].split('.')[0].split('_')[0];
-                const firstName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
-
-                const headerSpan = document.querySelector('header span');
-                if (headerSpan && !document.getElementById('saudacao-user')) {
-                    const saudacao = document.createElement('div');
-                    saudacao.id = 'saudacao-user';
-                    saudacao.style.fontSize = '0.65rem';
-                    saudacao.style.fontWeight = 'normal';
-                    saudacao.style.marginTop = '2px';
-                    saudacao.innerText = `Olá, bem-vindo de volta ${firstName}`;
-                    headerSpan.parentNode.style.display = 'flex';
-                    headerSpan.parentNode.style.flexDirection = 'row';
-                    headerSpan.parentNode.style.justifyContent = 'space-between';
-
-                    // Envolve o span em um container para a saudação ficar embaixo dele
-                    const containerNome = document.createElement('div');
-                    headerSpan.parentNode.insertBefore(containerNome, headerSpan);
-                    containerNome.appendChild(headerSpan);
-                    containerNome.appendChild(saudacao);
-                }
-            }
-
+        function showPortal() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('portal-content').classList.remove('hidden');
             renderTable();
@@ -401,16 +370,16 @@
             document.getElementById('display-sector').innerText = "Setor: " + setor;
             document.getElementById('step1').classList.add('hidden');
             document.getElementById('step2').classList.remove('hidden');
+            document.getElementById('dataRegistro').value = new Date().toISOString().split('T')[0];
         }
 
+        // UPLOAD DE IMAGENS
         async function uploadFotos(files, ticket) {
             const urls = [];
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const fileName = `${ticket}_${Date.now()}_${i}.${file.name.split('.').pop()}`;
-                const { data, error } = await supabaseClient.storage
-                    .from('fotos_irregularidades')
-                    .upload(fileName, file);
+                const fileName = `fotos/${ticket}_${Date.now()}_${i}.png`;
+                const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, file);
 
                 if (!error) {
                     const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
@@ -420,21 +389,18 @@
             return urls;
         }
 
+        // SALVAR FORMULÁRIO
         document.getElementById('irregularityForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('editId').value;
             const btn = document.getElementById('btnSubmitForm');
             const files = document.getElementById('fotos').files;
 
-            btn.innerText = "PROCESSANDO...";
-            btn.disabled = true;
+            btn.innerText = "ENVIANDO..."; btn.disabled = true;
 
             const ticketGerado = id ? undefined : Math.floor(10000 + Math.random() * 90000).toString();
-
             let linksFotos = [];
-            if (files.length > 0) {
-                linksFotos = await uploadFotos(files, ticketGerado || "edit");
-            }
+            if (files.length > 0) linksFotos = await uploadFotos(files, ticketGerado || "edit");
 
             const registro = {
                 ticket: ticketGerado,
@@ -444,43 +410,23 @@
                 data_iso: document.getElementById('dataRegistro').value,
                 endereco: document.getElementById('endereco').value,
                 tipo: document.getElementById('tipo').value,
+                rede: document.getElementById('rede').value,
                 informacoes: document.getElementById('informacoes').value,
-                qtd_fotos: files.length > 0 ? files.length : undefined,
                 fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined
             };
 
-            let res;
-            if (id) {
-                res = await supabaseClient.from('registros_alerta').update(registro).eq('id', id);
-            } else {
-                res = await supabaseClient.from('registros_alerta').insert([registro]);
-            }
+            const res = id ? await supabaseClient.from('registros_alerta').update(registro).eq('id', id)
+                : await supabaseClient.from('registros_alerta').insert([registro]);
 
-            if (res.error) alert("Erro: " + res.error.message);
-            else {
-                alert("Salvo com sucesso!");
-                resetForm();
-                renderTable();
-            }
-            btn.innerText = "SALVAR NO BANCO";
-            btn.disabled = false;
+            if (res.error) alert("Erro ao salvar: " + res.error.message);
+            else { alert("Sucesso!"); resetForm(); renderTable(); }
+
+            btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
+        // RENDERIZAR TABELA
         async function renderTable() {
-            const termoBusca = document.getElementById('buscaTicket').value;
-            const limite = document.getElementById('volumeRegistros').value;
-
-            let query = supabaseClient
-                .from('registros_alerta')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(parseInt(limite));
-
-            if (termoBusca) {
-                query = query.ilike('ticket', `%${termoBusca}%`);
-            }
-
-            const { data, error } = await query;
+            let { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
             if (error) return;
 
             const tbody = document.querySelector('#ticketsTable tbody');
@@ -488,51 +434,44 @@
                 let fotosHtml = '';
                 if (item.fotos_urls) {
                     const links = item.fotos_urls.split(',');
-                    fotosHtml = links.map(url =>
-                        `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`
-                    ).join('');
+                    fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
                 }
-
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
-                    <td class="text-wrap">${item.tecnico_nome || 'N/A'}</td>
-                    <td>${item.empresa || ''}</td>
-                    <td>${item.data_iso ? item.data_iso.split('-').reverse().join('/') : ''}</td>
+                    <td class="text-wrap">${item.tecnico_nome}</td>
+                    <td>${item.empresa}</td>
+                    <td>${item.data_iso.split('-').reverse().join('/')}</td>
                     <td>${item.setor}</td>
                     <td>${item.tipo}</td>
+                    <td>${item.rede || ''}</td>
                     <td class="text-wrap">${item.endereco}</td>
-                    <td class="text-wrap">${item.informacoes || ''}</td>
                     <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
-                    <td style="white-space:nowrap">
-                        <button class="btn-action" style="background:var(--warning); color:black" onclick="prepararEdicao('${item.id}')">✎</button>
-                        <button class="btn-action" style="background:var(--danger)" onclick="deletar('${item.id}')">✖</button>
+                    <td>
+                        <button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')">✎</button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
-        window.deletar = async (id) => { if (confirm("Apagar permanentemente?")) { await supabaseClient.from('registros_alerta').delete().eq('id', id); renderTable(); } };
-
         window.prepararEdicao = async (id) => {
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             setorSelecionado = data.setor;
             document.getElementById('editId').value = data.id;
-            document.getElementById('empresa').value = data.empresa || "";
-            document.getElementById('tecnicoNome').value = data.tecnico_nome || "";
+            document.getElementById('empresa').value = data.empresa;
+            document.getElementById('tecnicoNome').value = data.tecnico_nome;
             document.getElementById('dataRegistro').value = data.data_iso;
             document.getElementById('endereco').value = data.endereco;
             document.getElementById('tipo').value = data.tipo;
+            document.getElementById('rede').value = data.rede || "";
             document.getElementById('informacoes').value = data.informacoes;
             document.getElementById('step1').classList.add('hidden');
             document.getElementById('step2').classList.remove('hidden');
-            window.scrollTo(0, 0);
         };
 
         function resetForm() {
             document.getElementById('irregularityForm').reset();
             document.getElementById('editId').value = "";
-            document.getElementById('dataRegistro').value = new Date().toISOString().split('T')[0];
             document.getElementById('step2').classList.add('hidden');
             document.getElementById('step1').classList.remove('hidden');
         }
