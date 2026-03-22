@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BACKLOG SETORES - Dashboard Administrativo</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --vivo-purple: #660099;
+            --vivo-grey-bg: #F2F2F2;
+            --white: #ffffff;
+            --dark: #333333;
+            --osp-color: #00a1ff;
+            --casa-color: #ff8a00;
+            --movel-color: #28a745;
+            --finalizado-color: #20c997;
+            --btn-blue: #007bff;
+            --btn-green: #28a745;
+            --btn-orange: #fd7e14;
+            --btn-red: #dc3545;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            background-color: var(--vivo-grey-bg);
+            color: var(--dark);
+        }
+
+        header {
+            background: var(--vivo-purple);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-container {
+            padding: 30px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* KPIs Atualizados */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border-bottom: 5px solid var(--vivo-purple);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .kpi-card h3 {
+            font-size: 0.8rem;
+            color: #666;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .kpi-card .number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--vivo-purple);
+            margin-top: 5px;
+        }
+
+        .card-finalizado {
+            border-bottom-color: var(--finalizado-color);
+        }
+
+        .card-finalizado .number {
+            color: var(--finalizado-color);
+        }
+
+        /* Tabela */
+        .backlog-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-size: 0.8rem;
+            color: #555;
+            border-bottom: 2px solid #eee;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            padding: 35px;
+            width: 90%;
+            max-width: 850px;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 25px;
+            top: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .info-item label {
+            display: block;
+            font-weight: bold;
+            color: var(--vivo-purple);
+            font-size: 0.7rem;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .info-item div {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            min-height: 18px;
+        }
+
+        .photo-gallery {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .photo-gallery img {
+            width: 110px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            transition: 0.2s;
+        }
+
+        .photo-gallery img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Tratativas */
+        .action-box {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid var(--vivo-purple);
+        }
+
+        .history-card {
+            background: #fdfdfd;
+            border: 1px solid #eee;
+            border-left: 5px solid #ccc;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .history-card.principal {
+            border-left-color: var(--vivo-purple);
+            background: #f0f7ff;
+        }
+
+        .history-actions {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-mini {
+            padding: 4px 8px;
+            font-size: 0.6rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .btn-action {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8rem;
+            transition: 0.3s;
+        }
+
+        .btn-action:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .status-pill {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .pill-pendente {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .pill-finalizado {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>BACKLOG SETORES | GESTÃO</h1>
+        <button class="btn-action" style="background:rgba(255,255,255,0.2)" onclick="carregarDados()">🔄
+            ATUALIZAR</button>
+    </header>
+
+    <div class="dashboard-container">
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <h3>OSP</h3>
+                <div id="count-osp" class="number">0</div>
+            </div>
+            <div class="kpi-card">
+                <h3>CASA</h3>
+                <div id="count-casa" class="number">0</div>
+            </div>
+            <div class="kpi-card">
+                <h3>MÓVEL</h3>
+                <div id="count-movel" class="number">0</div>
+            </div>
+            <div class="kpi-card card-finalizado">
+                <h3>FINALIZADOS</h3>
+                <div id="count-finalizado" class="number">0</div>
+            </div>
+            <div class="kpi-card" style="background:var(--vivo-purple); border:none;">
+                <h3 style="color:white; opacity:0.8;">TOTAL TICKETS</h3>
+                <div id="count-total" class="number" style="color:white;">0</div>
+            </div>
+        </div>
+
+        <section class="backlog-section">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Setor</th>
+                        <th>Técnico / Empresa</th>
+                        <th>Irregularidade</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="backlog-body"></tbody>
+            </table>
+        </section>
+    </div>
+
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal()">×</span>
+            <h2 style="color: var(--vivo-purple); margin: 0 0 25px 0;">Ticket <span id="m-ticket"></span></h2>
+
+            <input type="hidden" id="current-db-id">
+
+            <div class="info-grid">
+                <div class="info-item"><label>Registro em</label>
+                    <div id="m-data"></div>
+                </div>
+                <div class="info-item"><label>Responsável</label>
+                    <div id="m-nome"></div>
+                </div>
+                <div class="info-item"><label>Irregularidade</label>
+                    <div id="m-tipo"></div>
+                </div>
+                <div class="info-item"><label>Endereço</label>
+                    <div id="m-endereco"></div>
+                </div>
+                <div class="info-item" style="grid-column: span 2;"><label>Localização GPS</label>
+                    <div id="m-geo"></div>
+                </div>
+            </div>
+
+            <div class="photo-gallery" id="m-fotos"></div>
+
+            <div class="action-box">
+                <label style="font-weight: bold; color: var(--vivo-purple); letter-spacing: 1px;">AÇÃO E
+                    TRATATIVA</label>
+
+                <div style="margin: 20px 0; display: flex; gap: 10px;">
+                    <button class="btn-action" style="background: var(--btn-orange);" onclick="adicionarInfo()">+
+                        ADICIONAR NOTA</button>
+                    <button class="btn-action" style="background: var(--btn-green);" onclick="realizarBaixa()">✓ DAR
+                        BAIXA</button>
+                    <button class="btn-action" style="background: var(--btn-red); margin-left: auto;"
+                        onclick="excluirTicket()">🗑️ EXCLUIR</button>
+                </div>
+
+                <div id="m-historico"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://cfjedufolkjrsajflfox.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function carregarDados() {
+            const { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
+            if (error) return;
+
+            // Atualiza KPIs
+            document.getElementById('count-osp').innerText = data.filter(i => i.setor === 'OSP').length;
+            document.getElementById('count-casa').innerText = data.filter(i => i.setor === 'CASA CLIENTE').length;
+            document.getElementById('count-movel').innerText = data.filter(i => i.setor === 'MOVEL BACKBONE').length;
+            document.getElementById('count-finalizado').innerText = data.filter(i => i.status === 'Finalizado').length;
+            document.getElementById('count-total').innerText = data.length;
+
+            // Renderiza Tabela
+            document.getElementById('backlog-body').innerHTML = data.map(item => `
+                <tr>
+                    <td><b>#${item.ticket}</b></td>
+                    <td>${item.setor}</td>
+                    <td>${item.tecnico_nome}<br><small style="color:gray">${item.empresa}</small></td>
+                    <td>${item.tipo}</td>
+                    <td><span class="status-pill ${item.status === 'Finalizado' ? 'pill-finalizado' : 'pill-pendente'}">${item.status || 'Pendente'}</span></td>
+                    <td><button class="btn-action" style="background:var(--btn-blue); padding:5px 10px;" onclick="abrirVisualizacao('${item.id}')">Visualizar</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function abrirVisualizacao(id) {
+            const { data, error } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
+            if (error) return;
+
+            document.getElementById('current-db-id').value = data.id;
+            document.getElementById('m-ticket').innerText = `#${data.ticket}`;
+            document.getElementById('m-data').innerText = new Date(data.created_at).toLocaleString();
+            document.getElementById('m-nome').innerText = data.tecnico_nome + " (" + data.empresa + ")";
+            document.getElementById('m-tipo').innerText = data.tipo;
+            document.getElementById('m-endereco').innerText = data.endereco;
+            document.getElementById('m-geo').innerHTML = `<a href="https://www.google.com/maps?q=${data.localizacao}" target="_blank" style="color:var(--vivo-purple)">📍 Ver no Google Maps</a>`;
+
+            const fotos = data.fotos_urls ? data.fotos_urls.split(',') : [];
+            document.getElementById('m-fotos').innerHTML = fotos.map(url => `<img src="${url}" onclick="window.open('${url}')">`).join('');
+
+            // SINCRONIZAÇÃO: Transforma "Informações Adicionais" (Fase 1) em "AÇÃO PRINCIPAL" (Fase 2)
+            const historicoArray = data.informacoes ? data.informacoes.split('---').filter(t => t.trim() !== "") : ["Nenhum relato inicial inserido pelo técnico."];
+
+            document.getElementById('m-historico').innerHTML = historicoArray.map((msg, index) => `
+                <div class="history-card ${index === 0 ? 'principal' : ''}">
+                    <div class="history-actions">
+                        <button class="btn-mini" style="background:var(--btn-blue)" onclick="editarNota(${index})">✏️</button>
+                        <button class="btn-mini" style="background:var(--btn-red)" onclick="excluirNota(${index})">🗑️</button>
+                    </div>
+                    <strong>${index === 0 ? 'TRATATIVA PRINCIPAL (ABERTURA)' : 'ATUALIZAÇÃO DE BACKLOG'}</strong>
+                    <p style="white-space: pre-wrap; margin: 8px 0;">${msg.trim()}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('viewModal').style.display = "block";
+        }
+
+        async function adicionarInfo() {
+            const id = document.getElementById('current-db-id').value;
+            const nota = prompt("Digite a nova atualização para o backlog:");
+            if (!nota) return;
+            const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes').eq('id', id).single();
+            const atualizado = (ticket.informacoes || "") + " --- " + "🕒 " + new Date().toLocaleString() + ": " + nota;
+            await supabaseClient.from('registros_alerta').update({ informacoes: atualizado }).eq('id', id);
+            abrirVisualizacao(id);
+        }
+
+        async function editarNota(index) {
+            const id = document.getElementById('current-db-id').value;
+            const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes').eq('id', id).single();
+            let arr = ticket.informacoes.split('---');
+            const novo = prompt("Corrigir nota:", arr[index].trim());
+            if (novo) {
+                arr[index] = " " + novo + " ";
+                await supabaseClient.from('registros_alerta').update({ informacoes: arr.join('---') }).eq('id', id);
+                abrirVisualizacao(id);
+            }
+        }
+
+        async function excluirNota(index) {
+            if (!confirm("Remover esta nota do histórico?")) return;
+            const id = document.getElementById('current-db-id').value;
+            const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes').eq('id', id).single();
+            let arr = ticket.informacoes.split('---');
+            arr.splice(index, 1);
+            await supabaseClient.from('registros_alerta').update({ informacoes: arr.join('---') }).eq('id', id);
+            abrirVisualizacao(id);
+        }
+
+        async function realizarBaixa() {
+            const id = document.getElementById('current-db-id').value;
+            if (confirm("Deseja marcar este ticket como FINALIZADO?")) {
+                await supabaseClient.from('registros_alerta').update({ status: 'Finalizado' }).eq(id, id);
+                fecharModal(); carregarDados();
+            }
+        }
+
+        async function excluirTicket() {
+            if (confirm("⚠️ AÇÃO IRREVERSÍVEL: Excluir este ticket permanentemente?")) {
+                const id = document.getElementById('current-db-id').value;
+                await supabaseClient.from('registros_alerta').delete().eq('id', id);
+                fecharModal(); carregarDados();
+            }
+        }
+
+        function fecharModal() { document.getElementById('viewModal').style.display = "none"; }
+        carregarDados();
+    </script>
+</body>
+
+</html>
