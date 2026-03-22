@@ -164,7 +164,6 @@
             cursor: pointer;
         }
 
-        /* ESTILO DAS ABAS FECHADOS/PENDENTES */
         .tabs-history {
             display: flex;
             gap: 10px;
@@ -223,6 +222,7 @@
             object-fit: cover;
             border-radius: 4px;
             border: 1px solid #ddd;
+            cursor: pointer;
         }
 
         .btn-action {
@@ -356,7 +356,6 @@
             <section class="card">
                 <h2>Histórico de Tickets</h2>
 
-                <!-- ABAS CORRIGIDAS: PENDENTES E FECHADOS -->
                 <div class="tabs-history">
                     <button id="tab-pendentes" class="tab-btn active" onclick="switchTab('pendente')">PENDENTES</button>
                     <button id="tab-fechados" class="tab-btn" onclick="switchTab('fechado')">FECHADOS</button>
@@ -413,7 +412,9 @@
             const password = document.getElementById('loginPass').value;
             const remember = document.getElementById('rememberMe').checked;
             const btn = document.getElementById('loginBtn');
+
             btn.innerText = "VALIDANDO..."; btn.disabled = true;
+
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
                 alert("Erro: Credenciais inválidas");
@@ -443,7 +444,6 @@
             renderTable();
         }
 
-        // FUNÇÃO DE TROCA DE ABA CORRIGIDA
         function switchTab(aba) {
             abaAtiva = aba;
             document.getElementById('tab-pendentes').classList.toggle('active', aba === 'pendente');
@@ -490,12 +490,17 @@
             const files = document.getElementById('fotos').files;
             btn.innerText = "ENVIANDO..."; btn.disabled = true;
 
-            const ticketGerado = id ? undefined : Math.floor(10000 + Math.random() * 90000).toString();
+            let ticketGerado;
+            if (!id) {
+                ticketGerado = Math.floor(10000 + Math.random() * 90000).toString();
+            }
+
             let linksFotos = [];
-            if (files.length > 0) linksFotos = await uploadFotos(files, ticketGerado || "edit");
+            if (files.length > 0) {
+                linksFotos = await uploadFotos(files, ticketGerado || "edit");
+            }
 
             const registro = {
-                ticket: ticketGerado,
                 setor: setorSelecionado,
                 empresa: document.getElementById('empresa').value,
                 tecnico_nome: document.getElementById('tecnicoNome').value,
@@ -507,13 +512,23 @@
                 localizacao: document.getElementById('geoCoords').value
             };
 
+            if (!id) registro.ticket = ticketGerado;
             if (linksFotos.length > 0) registro.fotos_urls = linksFotos.join(',');
 
-            const res = id ? await supabaseClient.from('registros_alerta').update(registro).eq('id', id)
-                : await supabaseClient.from('registros_alerta').insert([registro]);
+            let res;
+            if (id) {
+                res = await supabaseClient.from('registros_alerta').update(registro).eq('id', id);
+            } else {
+                res = await supabaseClient.from('registros_alerta').insert([registro]);
+            }
 
-            if (res.error) alert("Erro: " + res.error.message);
-            else { alert("Sucesso!"); resetForm(); renderTable(); }
+            if (res.error) {
+                alert("Erro: " + res.error.message);
+            } else {
+                alert("Sucesso!");
+                resetForm();
+                renderTable();
+            }
             btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
@@ -523,11 +538,11 @@
 
             const tbody = document.querySelector('#ticketsTable tbody');
 
-            // FILTRAGEM RIGOROSA PARA EXCLUSIVIDADE
             const filteredData = data.filter(item => {
-                const baixado = item.acao_tratativa && item.acao_tratativa !== 'Aguardando tratativa da gestão...';
-                if (abaAtiva === 'fechado') return baixado;
-                if (abaAtiva === 'pendente') return !baixado;
+                const baixado = item.acao_tratativa &&
+                    item.acao_tratativa !== 'Aguardando tratativa da gestão...' &&
+                    item.acao_tratativa.trim() !== "";
+                return abaAtiva === 'fechado' ? baixado : !baixado;
             });
 
             tbody.innerHTML = filteredData.map(item => {
@@ -569,7 +584,6 @@
             }
 
             const dataFmt = data.data_iso.split('-').reverse().join('/');
-
             const relatoTecnico = (data.informacoes || "Sem relato adicional.").trim();
             const retornoGestao = (data.acao_tratativa || "Aguardando tratativa da gestão.").trim();
 
@@ -606,6 +620,7 @@
             document.getElementById('rede').value = data.rede || "";
             document.getElementById('informacoes').value = data.informacoes;
             document.getElementById('geoCoords').value = data.localizacao || "";
+            document.getElementById('display-sector').innerText = "Setor: " + data.setor;
             document.getElementById('step1').classList.add('hidden');
             document.getElementById('step2').classList.remove('hidden');
         };
