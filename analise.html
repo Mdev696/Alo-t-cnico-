@@ -45,7 +45,6 @@
             margin: 0 auto;
         }
 
-        /* KPIs Atualizados */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -84,7 +83,6 @@
             color: var(--finalizado-color);
         }
 
-        /* Tabela */
         .backlog-section {
             background: white;
             padding: 25px;
@@ -113,7 +111,6 @@
             font-size: 0.85rem;
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -188,11 +185,6 @@
             transition: 0.2s;
         }
 
-        .photo-gallery img:hover {
-            transform: scale(1.05);
-        }
-
-        /* Tratativas */
         .action-box {
             margin-top: 25px;
             padding-top: 20px;
@@ -212,6 +204,12 @@
         .history-card.principal {
             border-left-color: var(--vivo-purple);
             background: #f0f7ff;
+        }
+
+        .history-card.baixa-concluida {
+            border-left-color: var(--btn-green);
+            background: #f1faf3;
+            border-width: 2px 2px 2px 10px;
         }
 
         .history-actions {
@@ -242,11 +240,6 @@
             transition: 0.3s;
         }
 
-        .btn-action:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
         .status-pill {
             padding: 5px 12px;
             border-radius: 20px;
@@ -262,6 +255,18 @@
         .pill-finalizado {
             background: #d1e7dd;
             color: #0f5132;
+        }
+
+        .baixa-form input,
+        .baixa-form select,
+        .baixa-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-family: inherit;
         }
     </style>
 </head>
@@ -299,6 +304,8 @@
         </div>
 
         <section class="backlog-section">
+            <h2 style="font-size: 1.2rem; color: var(--vivo-purple); margin-bottom: 15px;">📥 BACKLOG ATIVO (PENDENTES)
+            </h2>
             <table>
                 <thead>
                     <tr>
@@ -319,7 +326,6 @@
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal()">×</span>
             <h2 style="color: var(--vivo-purple); margin: 0 0 25px 0;">Ticket <span id="m-ticket"></span></h2>
-
             <input type="hidden" id="current-db-id">
 
             <div class="info-grid">
@@ -345,16 +351,14 @@
             <div class="action-box">
                 <label style="font-weight: bold; color: var(--vivo-purple); letter-spacing: 1px;">AÇÃO E
                     TRATATIVA</label>
-
-                <div style="margin: 20px 0; display: flex; gap: 10px;">
+                <div id="botoes-acao" style="margin: 20px 0; display: flex; gap: 10px;">
                     <button class="btn-action" style="background: var(--btn-orange);" onclick="adicionarInfo()">+
-                        ADICIONAR NOTA</button>
-                    <button class="btn-action" style="background: var(--btn-green);" onclick="realizarBaixa()">✓ DAR
-                        BAIXA</button>
+                        NOTA</button>
+                    <button id="btn-dar-baixa" class="btn-action" style="background: var(--btn-green);"
+                        onclick="prepararBaixa()">✓ DAR BAIXA</button>
                     <button class="btn-action" style="background: var(--btn-red); margin-left: auto;"
                         onclick="excluirTicket()">🗑️ EXCLUIR</button>
                 </div>
-
                 <div id="m-historico"></div>
             </div>
         </div>
@@ -369,21 +373,21 @@
             const { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
             if (error) return;
 
-            // Atualiza KPIs
-            document.getElementById('count-osp').innerText = data.filter(i => i.setor === 'OSP').length;
-            document.getElementById('count-casa').innerText = data.filter(i => i.setor === 'CASA CLIENTE').length;
-            document.getElementById('count-movel').innerText = data.filter(i => i.setor === 'MOVEL BACKBONE').length;
+            document.getElementById('count-osp').innerText = data.filter(i => i.setor === 'OSP' && i.status !== 'Finalizado').length;
+            document.getElementById('count-casa').innerText = data.filter(i => i.setor === 'CASA CLIENTE' && i.status !== 'Finalizado').length;
+            document.getElementById('count-movel').innerText = data.filter(i => i.setor === 'MOVEL BACKBONE' && i.status !== 'Finalizado').length;
             document.getElementById('count-finalizado').innerText = data.filter(i => i.status === 'Finalizado').length;
             document.getElementById('count-total').innerText = data.length;
 
-            // Renderiza Tabela
-            document.getElementById('backlog-body').innerHTML = data.map(item => `
+            const pendentes = data.filter(item => item.status !== 'Finalizado');
+
+            document.getElementById('backlog-body').innerHTML = pendentes.map(item => `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
                     <td>${item.setor}</td>
                     <td>${item.tecnico_nome}<br><small style="color:gray">${item.empresa}</small></td>
                     <td>${item.tipo}</td>
-                    <td><span class="status-pill ${item.status === 'Finalizado' ? 'pill-finalizado' : 'pill-pendente'}">${item.status || 'Pendente'}</span></td>
+                    <td><span class="status-pill pill-pendente">Pendente</span></td>
                     <td><button class="btn-action" style="background:var(--btn-blue); padding:5px 10px;" onclick="abrirVisualizacao('${item.id}')">Visualizar</button></td>
                 </tr>
             `).join('');
@@ -392,7 +396,6 @@
         async function abrirVisualizacao(id) {
             const { data, error } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             if (error) return;
-
             document.getElementById('current-db-id').value = data.id;
             document.getElementById('m-ticket').innerText = `#${data.ticket}`;
             document.getElementById('m-data').innerText = new Date(data.created_at).toLocaleString();
@@ -404,29 +407,112 @@
             const fotos = data.fotos_urls ? data.fotos_urls.split(',') : [];
             document.getElementById('m-fotos').innerHTML = fotos.map(url => `<img src="${url}" onclick="window.open('${url}')">`).join('');
 
-            // SINCRONIZAÇÃO: Transforma "Informações Adicionais" (Fase 1) em "AÇÃO PRINCIPAL" (Fase 2)
-            const historicoArray = data.informacoes ? data.informacoes.split('---').filter(t => t.trim() !== "") : ["Nenhum relato inicial inserido pelo técnico."];
+            document.getElementById('btn-dar-baixa').style.display = data.status === 'Finalizado' ? 'none' : 'block';
 
-            document.getElementById('m-historico').innerHTML = historicoArray.map((msg, index) => `
-                <div class="history-card ${index === 0 ? 'principal' : ''}">
+            const historicoArray = data.informacoes ? data.informacoes.split('---').filter(t => t.trim() !== "") : ["Sem relatos iniciais."];
+
+            document.getElementById('m-historico').innerHTML = historicoArray.map((msg, index) => {
+                const isBaixa = msg.includes('✅ BAIXA');
+                const cardClass = isBaixa ? 'baixa-concluida' : (index === 0 ? 'principal' : '');
+                const label = isBaixa ? '🏁 INFORMAÇÕES DA BAIXA' : (index === 0 ? 'TRATATIVA PRINCIPAL' : 'ATUALIZAÇÃO');
+
+                return `
+                <div class="history-card ${cardClass}">
                     <div class="history-actions">
                         <button class="btn-mini" style="background:var(--btn-blue)" onclick="editarNota(${index})">✏️</button>
                         <button class="btn-mini" style="background:var(--btn-red)" onclick="excluirNota(${index})">🗑️</button>
                     </div>
-                    <strong>${index === 0 ? 'TRATATIVA PRINCIPAL (ABERTURA)' : 'ATUALIZAÇÃO DE BACKLOG'}</strong>
+                    <strong>${label}</strong>
                     <p style="white-space: pre-wrap; margin: 8px 0;">${msg.trim()}</p>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.getElementById('viewModal').style.display = "block";
         }
 
+        function prepararBaixa() {
+            const id = document.getElementById('current-db-id').value;
+            const dataAtual = new Date().toLocaleString();
+            document.getElementById('m-historico').innerHTML = `
+                <div class="history-card principal baixa-form" style="border-left-color: var(--btn-green); background: #f9fffb;">
+                    <strong style="color:var(--btn-green)">📋 FORMULÁRIO DE BAIXA</strong>
+                    <label>Data de Registro (Automático)</label>
+                    <input type="text" value="${dataAtual}" disabled style="background:#eee">
+                    
+                    <label>Motivo da Baixa</label>
+                    <select id="baixa-motivo">
+                        <option>Normalizado</option>
+                        <option>Improcedente</option>
+                        <option>Transferência de Setor</option>
+                        <option>Outros</option>
+                    </select>
+                    
+                    <label>Observação Final</label>
+                    <textarea id="baixa-obs" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
+                    
+                    <label>Selecionar Foto da Galeria</label>
+                    <input type="file" id="baixa-galeria" accept="image/*">
+                    
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        <button class="btn-action" style="background:var(--btn-green); flex:1" onclick="confirmarFinalizacao()">CONCLUIR E REMOVER DO BACKLOG</button>
+                        <button class="btn-action" style="background:#888; flex:1" onclick="abrirVisualizacao('${id}')">VOLTAR</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function confirmarFinalizacao() {
+            const id = document.getElementById('current-db-id').value;
+            const motivo = document.getElementById('baixa-motivo').value;
+            const obs = document.getElementById('baixa-obs').value;
+            const fileInput = document.getElementById('baixa-galeria');
+
+            if (!obs) return alert("Por favor, preencha a observação final.");
+
+            let fotoUrl = "";
+
+            // CORREÇÃO AQUI: Ajustado para o bucket fotos_irregularidades
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileName = `baixa_${id}_${Date.now()}.png`;
+
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('fotos_irregularidades')
+                    .upload(fileName, file);
+
+                if (!uploadError) {
+                    const { data: publicUrlData } = supabaseClient.storage
+                        .from('fotos_irregularidades')
+                        .getPublicUrl(fileName);
+                    fotoUrl = publicUrlData.publicUrl;
+                } else {
+                    console.error("Erro no upload:", uploadError);
+                }
+            }
+
+            const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes, fotos_urls').eq('id', id).single();
+            const novaInfo = (ticket.informacoes || "") + " --- ✅ BAIXA (" + new Date().toLocaleString() + "):\nMotivo: " + motivo + "\nObs: " + obs;
+
+            let fotosFinal = ticket.fotos_urls || "";
+            if (fotoUrl) fotosFinal += (fotosFinal ? "," : "") + fotoUrl;
+
+            await supabaseClient.from('registros_alerta').update({
+                status: 'Finalizado',
+                informacoes: novaInfo,
+                fotos_urls: fotosFinal
+            }).eq('id', id);
+
+            fecharModal();
+            carregarDados();
+        }
+
         async function adicionarInfo() {
             const id = document.getElementById('current-db-id').value;
-            const nota = prompt("Digite a nova atualização para o backlog:");
+            const nota = prompt("Nova nota:");
             if (!nota) return;
             const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes').eq('id', id).single();
-            const atualizado = (ticket.informacoes || "") + " --- " + "🕒 " + new Date().toLocaleString() + ": " + nota;
+            const atualizado = (ticket.informacoes || "") + " --- 🕒 " + new Date().toLocaleString() + ": " + nota;
             await supabaseClient.from('registros_alerta').update({ informacoes: atualizado }).eq('id', id);
             abrirVisualizacao(id);
         }
@@ -435,16 +521,12 @@
             const id = document.getElementById('current-db-id').value;
             const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes').eq('id', id).single();
             let arr = ticket.informacoes.split('---');
-            const novo = prompt("Corrigir nota:", arr[index].trim());
-            if (novo) {
-                arr[index] = " " + novo + " ";
-                await supabaseClient.from('registros_alerta').update({ informacoes: arr.join('---') }).eq('id', id);
-                abrirVisualizacao(id);
-            }
+            const novo = prompt("Editar:", arr[index].trim());
+            if (novo) { arr[index] = " " + novo + " "; await supabaseClient.from('registros_alerta').update({ informacoes: arr.join('---') }).eq('id', id); abrirVisualizacao(id); }
         }
 
         async function excluirNota(index) {
-            if (!confirm("Remover esta nota do histórico?")) return;
+            if (!confirm("Excluir nota?")) return;
             const id = document.getElementById('current-db-id').value;
             const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes').eq('id', id).single();
             let arr = ticket.informacoes.split('---');
@@ -453,20 +535,11 @@
             abrirVisualizacao(id);
         }
 
-        async function realizarBaixa() {
-            const id = document.getElementById('current-db-id').value;
-            if (confirm("Deseja marcar este ticket como FINALIZADO?")) {
-                await supabaseClient.from('registros_alerta').update({ status: 'Finalizado' }).eq(id, id);
-                fecharModal(); carregarDados();
-            }
-        }
-
         async function excluirTicket() {
-            if (confirm("⚠️ AÇÃO IRREVERSÍVEL: Excluir este ticket permanentemente?")) {
-                const id = document.getElementById('current-db-id').value;
-                await supabaseClient.from('registros_alerta').delete().eq('id', id);
-                fecharModal(); carregarDados();
-            }
+            if (!confirm("Excluir ticket permanentemente?")) return;
+            const id = document.getElementById('current-db-id').value;
+            await supabaseClient.from('registros_alerta').delete().eq('id', id);
+            fecharModal(); carregarDados();
         }
 
         function fecharModal() { document.getElementById('viewModal').style.display = "none"; }
