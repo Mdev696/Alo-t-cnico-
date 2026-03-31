@@ -25,6 +25,7 @@
             --success: #28a745;
             --danger: #dc3545;
             --warning: #ffc107;
+            --info: #17a2b8;
         }
 
         body {
@@ -163,6 +164,29 @@
             cursor: pointer;
         }
 
+        .tabs-history {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #e0e0e0;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--vivo-grey-text);
+        }
+
+        .tab-btn.active {
+            background: var(--vivo-purple);
+            color: white;
+        }
+
         .table-container {
             overflow-x: auto;
             margin-top: 10px;
@@ -198,6 +222,7 @@
             object-fit: cover;
             border-radius: 4px;
             border: 1px solid #ddd;
+            cursor: pointer;
         }
 
         .btn-action {
@@ -329,7 +354,13 @@
             </div>
 
             <section class="card">
-                <h2>Histórico Geral</h2>
+                <h2>Histórico de Tickets</h2>
+
+                <div class="tabs-history">
+                    <button id="tab-pendentes" class="tab-btn active" onclick="switchTab('pendente')">PENDENTES</button>
+                    <button id="tab-fechados" class="tab-btn" onclick="switchTab('fechado')">FECHADOS</button>
+                </div>
+
                 <div class="table-container">
                     <table id="ticketsTable">
                         <thead>
@@ -357,6 +388,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let setorSelecionado = "";
+        let abaAtiva = "pendente";
 
         window.onload = () => {
             const savedEmail = localStorage.getItem('saved_email');
@@ -404,19 +436,18 @@
         async function showPortal() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('portal-content').classList.remove('hidden');
-
             const { data: { user } } = await supabaseClient.auth.getUser();
-
-            // LÓGICA PARA PEGAR APENAS O PRIMEIRO NOME:
-            // 1. Tenta pegar o nome completo do cadastro (user_metadata)
-            // 2. Se não tiver, pega a parte do e-mail antes do "@"
-            // 3. Pega apenas a primeira palavra e coloca a primeira letra em Maiúsculo
             let rawName = user.user_metadata.full_name || user.email.split('@')[0];
-            let firstName = rawName.split(/[\s._]/)[0]; // Divide por espaço, ponto ou underline
+            let firstName = rawName.split(/[\s._]/)[0];
             firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-
             document.getElementById('user-greeting').innerText = `Olá, bem-vindo de volta ${firstName}`;
+            renderTable();
+        }
 
+        function switchTab(aba) {
+            abaAtiva = aba;
+            document.getElementById('tab-pendentes').classList.toggle('active', aba === 'pendente');
+            document.getElementById('tab-fechados').classList.toggle('active', aba === 'fechado');
             renderTable();
         }
 
@@ -457,15 +488,19 @@
             const id = document.getElementById('editId').value;
             const btn = document.getElementById('btnSubmitForm');
             const files = document.getElementById('fotos').files;
-
             btn.innerText = "ENVIANDO..."; btn.disabled = true;
 
-            const ticketGerado = id ? undefined : Math.floor(10000 + Math.random() * 90000).toString();
+            let ticketGerado;
+            if (!id) {
+                ticketGerado = Math.floor(10000 + Math.random() * 90000).toString();
+            }
+
             let linksFotos = [];
-            if (files.length > 0) linksFotos = await uploadFotos(files, ticketGerado || "edit");
+            if (files.length > 0) {
+                linksFotos = await uploadFotos(files, ticketGerado || "edit");
+            }
 
             const registro = {
-                ticket: ticketGerado,
                 setor: setorSelecionado,
                 empresa: document.getElementById('empresa').value,
                 tecnico_nome: document.getElementById('tecnicoNome').value,
@@ -475,14 +510,26 @@
                 rede: document.getElementById('rede').value,
                 informacoes: document.getElementById('informacoes').value,
                 localizacao: document.getElementById('geoCoords').value,
-                fotos_urls: linksFotos.length > 0 ? linksFotos.join(',') : undefined
+                status: 'Pendente' // Novo registro entra como pendente
             };
 
-            const res = id ? await supabaseClient.from('registros_alerta').update(registro).eq('id', id)
-                : await supabaseClient.from('registros_alerta').insert([registro]);
+            if (!id) registro.ticket = ticketGerado;
+            if (linksFotos.length > 0) registro.fotos_urls = linksFotos.join(',');
 
-            if (res.error) alert("Erro: " + res.error.message);
-            else { alert("Sucesso!"); resetForm(); renderTable(); }
+            let res;
+            if (id) {
+                res = await supabaseClient.from('registros_alerta').update(registro).eq('id', id);
+            } else {
+                res = await supabaseClient.from('registros_alerta').insert([registro]);
+            }
+
+            if (res.error) {
+                alert("Erro: " + res.error.message);
+            } else {
+                alert("Sucesso!");
+                resetForm();
+                renderTable();
+            }
             btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
@@ -491,7 +538,14 @@
             if (error) return;
 
             const tbody = document.querySelector('#ticketsTable tbody');
-            tbody.innerHTML = data.map(item => {
+
+            // LÓGICA DE FILTRAGEM SINCRONIZADA COM A GESTÃO:
+            const filteredData = data.filter(item => {
+                const isFinalizado = (item.status === 'Finalizado');
+                return abaAtiva === 'fechado' ? isFinalizado : !isFinalizado;
+            });
+
+            tbody.innerHTML = filteredData.map(item => {
                 let fotosHtml = '';
                 if (item.fotos_urls) {
                     const links = item.fotos_urls.split(',');
@@ -509,12 +563,45 @@
                     <td>${mapLink}</td>
                     <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
                     <td>
-                        <button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')" title="Editar">✎</button>
+                        <button class="btn-action" style="background:var(--info); color:white" onclick="exibirInfo('${item.id}')" title="Ver Informações">ℹ️</button>
+                        ${item.status !== 'Finalizado' ? `<button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')" title="Editar">✎</button>` : ''}
                         <button class="btn-action" style="background:var(--danger); color:white" onclick="excluirRegistro('${item.id}')" title="Excluir">🗑️</button>
                     </td>
                 </tr>`;
             }).join('');
         }
+
+        window.exibirInfo = async (id) => {
+            const { data, error } = await supabaseClient
+                .from('registros_alerta')
+                .select('informacoes, tecnico_nome, data_iso, ticket, status')
+                .eq('id', id)
+                .single();
+
+            if (error) {
+                alert("Erro ao buscar detalhes.");
+                return;
+            }
+
+            const dataFmt = data.data_iso.split('-').reverse().join('/');
+            const relatoTecnico = (data.informacoes || "Sem relato adicional.").trim();
+
+            // Aqui ele mostra as notas que a gestão inseriu (que agora estão na coluna informacoes separadas por ---)
+            const partesHistorico = relatoTecnico.split('---');
+            const relatoInicial = partesHistorico[0];
+            const tratativas = partesHistorico.slice(1).join('\n\n');
+
+            alert(
+                `TICKET: #${data.ticket}\n` +
+                `STATUS: ${data.status || 'Pendente'}\n` +
+                `DATA: ${dataFmt}\n` +
+                `----------------------------------\n\n` +
+                `[ RELATO INICIAL ]\n` +
+                `${relatoInicial}\n\n` +
+                `[ HISTÓRICO DE TRATATIVAS / BAIXA ]\n` +
+                `${tratativas || 'Nenhuma atualização da gestão até o momento.'}`
+            );
+        };
 
         window.excluirRegistro = async (id) => {
             if (confirm("Deseja realmente excluir este registro? Esta ação não pode ser desfeita.")) {
@@ -536,6 +623,7 @@
             document.getElementById('rede').value = data.rede || "";
             document.getElementById('informacoes').value = data.informacoes;
             document.getElementById('geoCoords').value = data.localizacao || "";
+            document.getElementById('display-sector').innerText = "Setor: " + data.setor;
             document.getElementById('step1').classList.add('hidden');
             document.getElementById('step2').classList.remove('hidden');
         };

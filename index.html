@@ -284,7 +284,7 @@
                 <option>Normalizado</option>
                 <option>Improcedente</option>
                 <option>Transferência de Setor</option>
-                <option>Outros</option>
+
             </select>
             <label>Evidência (Foto):</label>
             <input type="file" id="fotoBaixa" accept="image/*">
@@ -323,37 +323,20 @@
                         <input type="hidden" id="geoCoords" value="">
 
                         <label>UF</label>
-                        <select id="uf" required>
+                        <select id="uf" required onchange="carregarAreas(this.value)">
                             <option value="">Selecione...</option>
                             <option value="RJ">RJ</option>
                             <option value="ES">ES</option>
                         </select>
 
                         <label>Área</label>
-                        <select id="area" required>
-                            <option value="">Selecione...</option>
-                            <option>Zona Sul</option>
-                            <option>Zona Norte</option>
-                            <option>Zona Leste</option>
-                            <option>Zona Suldoeste</option>
-                            <option>Zona oeste</option>
-                            <option>Baixada</option>
-                            <option>Metropolitana</option>
-                            <option>Interior</option>
+                        <select id="area" required onchange="carregarARDs(this.value)">
+                            <option value="">Selecione a UF primeiro...</option>
                         </select>
 
                         <label>ARD</label>
                         <select id="ard" required>
-                            <option value="">Selecione...</option>
-                            <option>C04</option>
-                            <option>M55</option>
-                            <option>I60</option>
-                            <option>I01</option>
-                            <option>C05</option>
-                            <option>I45</option>
-                            <option>I44</option>
-                            <option>I50</option>
-                            <option>M70</option>
+                            <option value="">Selecione a Área primeiro...</option>
                         </select>
 
                         <label>Empresa</label>
@@ -372,7 +355,7 @@
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
 
-                        <label>Fotos da Irregularidade</label>
+                        <label>Fotos da Irregularidade (Solicita Localização)</label>
                         <input type="file" id="fotos" accept="image/*" multiple onchange="capturarLocalizacao()">
 
                         <label>Endereço Completo</label>
@@ -425,6 +408,7 @@
                                 <th>Data</th>
                                 <th>Tipo</th>
                                 <th>Endereço</th>
+                                <th>Localização</th>
                                 <th>Fotos</th>
                                 <th>Ações</th>
                             </tr>
@@ -443,6 +427,7 @@
 
         let setorSelecionado = "";
         let abaAtiva = "pendente";
+        let dadosGeograficos = [];
 
         window.onload = () => {
             const savedEmail = localStorage.getItem('saved_email');
@@ -488,6 +473,41 @@
             renderTable();
         }
 
+        async function carregarAreas(ufSelecionada) {
+            if (!ufSelecionada) return;
+            const areaSelect = document.getElementById('area');
+            const ardSelect = document.getElementById('ard');
+            areaSelect.innerHTML = '<option value="">Carregando...</option>';
+
+            const { data, error } = await supabaseClient
+                .from('apoio_geografico')
+                .select('*')
+                .eq('uf', ufSelecionada);
+
+            if (error) return console.error(error);
+            dadosGeograficos = data;
+
+            const areasUnicas = [...new Set(data.map(item => item.area))].sort();
+            areaSelect.innerHTML = '<option value="">Selecione a Área...</option>';
+            areasUnicas.forEach(area => {
+                areaSelect.innerHTML += `<option value="${area}">${area}</option>`;
+            });
+            ardSelect.innerHTML = '<option value="">Selecione a Área primeiro...</option>';
+        }
+
+        function carregarARDs(areaSelecionada) {
+            const ardSelect = document.getElementById('ard');
+            const ardsFiltrados = dadosGeograficos
+                .filter(item => item.area === areaSelecionada)
+                .map(item => item.ard)
+                .sort();
+
+            ardSelect.innerHTML = '<option value="">Selecione o ARD...</option>';
+            ardsFiltrados.forEach(ard => {
+                ardSelect.innerHTML += `<option value="${ard}">${ard}</option>`;
+            });
+        }
+
         function switchTab(aba) {
             abaAtiva = aba;
             document.getElementById('tab-pendentes').classList.toggle('active', aba === 'pendente');
@@ -499,6 +519,8 @@
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
                     document.getElementById('geoCoords').value = `${pos.coords.latitude},${pos.coords.longitude}`;
+                }, (error) => {
+                    console.warn("Geolocalização não disponível.");
                 });
             }
         }
@@ -606,6 +628,11 @@
             tbody.innerHTML = filteredData.map(item => {
                 const links = item.fotos_urls ? item.fotos_urls.split(',') : [];
                 const fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
+
+                const locBtn = item.localizacao
+                    ? `<button class="btn-action" style="background:#eee; font-size: 0.9rem;" onclick="window.open('https://www.google.com/maps?q=${item.localizacao}', '_blank')">📍 Mapa</button>`
+                    : '--';
+
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
@@ -615,6 +642,7 @@
                     <td>${item.data_iso.split('-').reverse().join('/')}</td>
                     <td>${item.tipo}</td>
                     <td class="text-wrap">${item.endereco}</td>
+                    <td style="text-align:center">${locBtn}</td>
                     <td><div style="display:flex; gap:2px;">${fotosHtml}</div></td>
                     <td>
                         <button class="btn-action" style="background:var(--info); color:white" onclick="exibirInfo('${item.id}')">ℹ️</button>
@@ -641,9 +669,14 @@
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             setorSelecionado = data.setor;
             document.getElementById('editId').value = data.id;
+            document.getElementById('geoCoords').value = data.localizacao || "";
+
             document.getElementById('uf').value = data.uf || "";
+            await carregarAreas(data.uf);
             document.getElementById('area').value = data.area || "";
+            carregarARDs(data.area);
             document.getElementById('ard').value = data.ard || "";
+
             document.getElementById('empresa').value = data.empresa;
             document.getElementById('tecnicoNome').value = data.tecnico_nome;
             document.getElementById('dataRegistro').value = data.data_iso;
@@ -658,7 +691,10 @@
 
         function resetForm() {
             document.getElementById('irregularityForm').reset();
+            document.getElementById('area').innerHTML = '<option value="">Selecione a UF primeiro...</option>';
+            document.getElementById('ard').innerHTML = '<option value="">Selecione a Área primeiro...</option>';
             document.getElementById('editId').value = "";
+            document.getElementById('geoCoords').value = "";
             document.getElementById('step2').classList.add('hidden');
             document.getElementById('step1').classList.remove('hidden');
         }
