@@ -93,7 +93,7 @@
 
         main {
             padding: 15px;
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -125,6 +125,11 @@
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
+        }
+
+        .btn-sector:active {
+            background: var(--vivo-purple);
+            color: white;
         }
 
         label {
@@ -160,6 +165,7 @@
             cursor: pointer;
         }
 
+        /* Estilos do Modal de Pré-Baixa */
         .modal {
             position: fixed;
             top: 0;
@@ -196,6 +202,7 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 0.85rem;
+            color: var(--vivo-grey-text);
         }
 
         .tab-btn.active {
@@ -211,20 +218,20 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.7rem;
-            min-width: 1100px;
+            font-size: 0.75rem;
+            min-width: 900px;
         }
 
         th {
             text-align: left;
             background: #f4f4f4;
-            padding: 10px 5px;
+            padding: 12px 8px;
             color: var(--vivo-purple);
             border-bottom: 2px solid #ddd;
         }
 
         td {
-            padding: 8px 5px;
+            padding: 10px 8px;
             border-bottom: 1px solid #eee;
         }
 
@@ -233,8 +240,8 @@
         }
 
         .thumb-foto {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             object-fit: cover;
             border-radius: 4px;
             border: 1px solid #ddd;
@@ -243,16 +250,29 @@
 
         .btn-action {
             border: none;
-            padding: 6px;
+            padding: 8px;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 2px;
+            margin-right: 5px;
         }
 
         .text-wrap {
-            max-width: 120px;
+            max-width: 150px;
             word-wrap: break-word;
             white-space: normal;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--vivo-grey-text);
+        }
+
+        .remember-me input {
+            width: auto;
         }
     </style>
 </head>
@@ -267,9 +287,12 @@
                 <input type="email" id="loginEmail" placeholder="Digite seu e-mail" required>
                 <label>Senha</label>
                 <input type="password" id="loginPass" required>
-                <div style="margin-top:10px; font-size:0.8rem; color: #666;">
-                    <input type="checkbox" id="rememberMe"> Lembrar acesso
+
+                <div class="remember-me">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Lembrar meu acesso</span>
                 </div>
+
                 <button type="submit" class="btn-submit" id="loginBtn">ENTRAR</button>
             </form>
         </div>
@@ -279,21 +302,25 @@
         <div class="modal-content">
             <h2>🛠️ Pré-Baixa do Ticket</h2>
             <input type="hidden" id="preBaixaId">
-            <label>Relato da resolução:</label>
+
+            <label>Relato da resolução (O que foi feito?):</label>
             <select id="pre-baixa-motivo">
                 <option>Normalizado</option>
                 <option>Improcedente</option>
                 <option>Transferência de Setor</option>
                 <option>Outros</option>
             </select>
-            <label>Evidência (Foto):</label>
+
+            <label>Evidência (Tirar ou importar foto):</label>
             <input type="file" id="fotoBaixa" accept="image/*">
-            <label>Observações</label>
-            <textarea id="obsBaixa" rows="2"></textarea>
+
+            <label>Observações Adicionais</label>
+            <textarea id="obsBaixa" rows="3" placeholder="Detalhes extras..."></textarea>
+
             <button type="button" class="btn-submit" onclick="confirmarPreBaixa()" id="btnConfirmarBaixa">ENVIAR PARA
                 GESTÃO</button>
             <button type="button" onclick="fecharModal()"
-                style="width:100%; background:none; border:none; margin-top:10px;">Cancelar</button>
+                style="width:100%; border:none; background:none; color:grey; margin-top:10px; cursor:pointer;">Cancelar</button>
         </div>
     </div>
 
@@ -322,40 +349,6 @@
                         <input type="hidden" id="editId" value="">
                         <input type="hidden" id="geoCoords" value="">
 
-                        <label>UF</label>
-                        <select id="uf" required>
-                            <option value="">Selecione...</option>
-                            <option value="RJ">RJ</option>
-                            <option value="ES">ES</option>
-                        </select>
-
-                        <label>Área</label>
-                        <select id="area" required>
-                            <option value="">Selecione...</option>
-                            <option>Zona Sul</option>
-                            <option>Zona Norte</option>
-                            <option>Zona Leste</option>
-                            <option>Zona Suldoeste</option>
-                            <option>Zona oeste</option>
-                            <option>Baixada</option>
-                            <option>Metropolitana</option>
-                            <option>Interior</option>
-                        </select>
-
-                        <label>ARD</label>
-                        <select id="ard" required>
-                            <option value="">Selecione...</option>
-                            <option>C04</option>
-                            <option>M55</option>
-                            <option>I60</option>
-                            <option>I01</option>
-                            <option>C05</option>
-                            <option>I45</option>
-                            <option>I44</option>
-                            <option>I50</option>
-                            <option>M70</option>
-                        </select>
-
                         <label>Empresa</label>
                         <select id="empresa" required>
                             <option value="">Selecione...</option>
@@ -367,7 +360,7 @@
                         </select>
 
                         <label>Nome do Técnico</label>
-                        <input type="text" id="tecnicoNome" required>
+                        <input type="text" id="tecnicoNome" placeholder="Nome completo" required>
 
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
@@ -376,7 +369,7 @@
                         <input type="file" id="fotos" accept="image/*" multiple onchange="capturarLocalizacao()">
 
                         <label>Endereço Completo</label>
-                        <input type="text" id="endereco" placeholder="Rua, Bairro, Cidade" required>
+                        <input type="text" id="endereco" placeholder="Rua, Número, Bairro" required>
 
                         <label>Tipo de Irregularidade</label>
                         <select id="tipo" required>
@@ -388,6 +381,7 @@
                             <option>Aviso Light</option>
                             <option>Travessia Baixa</option>
                             <option>Emenda Danificada</option>
+                            <option>Pon Danificado</option>
                             <option>Poste não equipado</option>
                         </select>
 
@@ -399,32 +393,33 @@
                         </select>
 
                         <label>Informações Adicionais</label>
-                        <textarea id="informacoes" rows="3" required></textarea>
+                        <textarea id="informacoes" rows="3" placeholder="Detalhes técnicos..." required></textarea>
 
                         <button type="submit" id="btnSubmitForm" class="btn-submit">SALVAR NO BANCO</button>
                         <button type="button" onclick="resetForm()"
-                            style="width:100%; border:none; background:none; margin-top:10px;">Voltar</button>
+                            style="width:100%; background:none; border:none; color:gray; text-decoration:underline; margin-top:15px; cursor:pointer;">Voltar</button>
                     </form>
                 </section>
             </div>
 
             <section class="card">
                 <h2>Histórico de Tickets</h2>
+
                 <div class="tabs-history">
                     <button id="tab-pendentes" class="tab-btn active" onclick="switchTab('pendente')">PENDENTES</button>
                     <button id="tab-fechados" class="tab-btn" onclick="switchTab('fechado')">PRÉ-BAIXA</button>
                 </div>
+
                 <div class="table-container">
                     <table id="ticketsTable">
                         <thead>
                             <tr>
                                 <th>Ticket</th>
-                                <th>UF/Área</th>
-                                <th>ARD</th>
                                 <th>Técnico</th>
                                 <th>Data</th>
                                 <th>Tipo</th>
                                 <th>Endereço</th>
+                                <th>Localização</th>
                                 <th>Fotos</th>
                                 <th>Ações</th>
                             </tr>
@@ -466,12 +461,18 @@
             const password = document.getElementById('loginPass').value;
             const remember = document.getElementById('rememberMe').checked;
             const btn = document.getElementById('loginBtn');
+
             btn.innerText = "VALIDANDO..."; btn.disabled = true;
 
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) { alert("Erro: Credenciais inválidas"); btn.innerText = "ENTRAR"; btn.disabled = false; }
-            else {
-                if (remember) { localStorage.setItem('saved_email', email); localStorage.setItem('saved_pass', password); }
+            if (error) {
+                alert("Erro: Credenciais inválidas");
+                btn.innerText = "ENTRAR"; btn.disabled = false;
+            } else {
+                if (remember) {
+                    localStorage.setItem('saved_email', email);
+                    localStorage.setItem('saved_pass', password);
+                }
                 showPortal();
             }
         };
@@ -483,8 +484,9 @@
             document.getElementById('portal-content').classList.remove('hidden');
             const { data: { user } } = await supabaseClient.auth.getUser();
             let rawName = user.user_metadata.full_name || user.email.split('@')[0];
-            let firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1).split(/[\s._]/)[0].toLowerCase();
-            document.getElementById('user-greeting').innerText = `Olá, ${firstName}`;
+            let firstName = rawName.split(/[\s._]/)[0];
+            firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+            document.getElementById('user-greeting').innerText = `Olá, bem-vindo de volta ${firstName}`;
             renderTable();
         }
 
@@ -514,8 +516,9 @@
         async function uploadFotos(files, prefix) {
             const urls = [];
             for (let i = 0; i < files.length; i++) {
+                const file = files[i];
                 const fileName = `fotos/${prefix}_${Date.now()}_${i}.png`;
-                const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, files[i]);
+                const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, file);
                 if (!error) {
                     const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
                     urls.push(pUrl.publicUrl);
@@ -536,9 +539,6 @@
 
             const registro = {
                 setor: setorSelecionado,
-                uf: document.getElementById('uf').value,
-                area: document.getElementById('area').value,
-                ard: document.getElementById('ard').value,
                 empresa: document.getElementById('empresa').value,
                 tecnico_nome: document.getElementById('tecnicoNome').value,
                 data_iso: document.getElementById('dataRegistro').value,
@@ -561,12 +561,17 @@
             btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
+        // CONTROLE DO MODAL DE PRÉ-BAIXA
         window.solicitarPreBaixa = (id) => {
             document.getElementById('preBaixaId').value = id;
             document.getElementById('modalPreBaixa').style.display = 'flex';
         };
 
-        function fecharModal() { document.getElementById('modalPreBaixa').style.display = 'none'; }
+        function fecharModal() {
+            document.getElementById('modalPreBaixa').style.display = 'none';
+            document.getElementById('fotoBaixa').value = "";
+            document.getElementById('obsBaixa').value = "";
+        }
 
         async function confirmarPreBaixa() {
             const id = document.getElementById('preBaixaId').value;
@@ -576,46 +581,66 @@
             const btn = document.getElementById('btnConfirmarBaixa');
 
             btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+
+            // Busca ticket atual para compor o histórico
             const { data: ticketAtual } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
 
+            // Upload da foto de baixa (se houver)
             let linkFotoBaixa = "";
             if (files.length > 0) {
                 const urls = await uploadFotos(files, `baixa_${ticketAtual.ticket}`);
                 linkFotoBaixa = urls[0];
             }
 
+            const novoRelato = (ticketAtual.informacoes || "") +
+                `\n\n--- 🛠️ PRÉ-BAIXA ---\nMOTIVO: ${motivo}\nOBS: ${obs}`;
+
+            // Atualiza fotos (mantém as antigas + a nova de baixa)
             let fotosAtualizadas = ticketAtual.fotos_urls || "";
-            if (linkFotoBaixa) fotosAtualizadas += (fotosAtualizadas ? "," : "") + linkFotoBaixa;
+            if (linkFotoBaixa) {
+                fotosAtualizadas += (fotosAtualizadas ? "," : "") + linkFotoBaixa;
+            }
 
             const { error } = await supabaseClient.from('registros_alerta').update({
                 status: 'Aguardando Baixa',
-                informacoes: (ticketAtual.informacoes || "") + `\n\n--- 🛠️ PRÉ-BAIXA ---\nMOTIVO: ${motivo}\nOBS: ${obs}`,
+                informacoes: novoRelato,
                 fotos_urls: fotosAtualizadas
             }).eq('id', id);
 
-            if (!error) { alert("Ticket enviado para pré-baixa!"); fecharModal(); renderTable(); }
+            if (!error) {
+                alert("Ticket enviado para pré-baixa!");
+                fecharModal();
+                renderTable();
+            } else {
+                alert("Erro ao processar.");
+            }
             btn.innerText = "ENVIAR PARA GESTÃO"; btn.disabled = false;
         }
 
         async function renderTable() {
             let { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
             if (error) return;
+
             const tbody = document.querySelector('#ticketsTable tbody');
             const filteredData = data.filter(item => abaAtiva === 'fechado' ? item.status === 'Aguardando Baixa' : item.status === 'Pendente');
 
             tbody.innerHTML = filteredData.map(item => {
-                const links = item.fotos_urls ? item.fotos_urls.split(',') : [];
-                const fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
+                let fotosHtml = '';
+                if (item.fotos_urls) {
+                    const links = item.fotos_urls.split(',');
+                    fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
+                }
+                const mapLink = item.localizacao ? `<a href="https://www.google.com/maps?q=${item.localizacao}" target="_blank">📍 Mapa</a>` : 'N/A';
+
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
-                    <td>${item.uf || '--'} / ${item.area || '--'}</td>
-                    <td>${item.ard || '--'}</td>
                     <td class="text-wrap">${item.tecnico_nome}</td>
                     <td>${item.data_iso.split('-').reverse().join('/')}</td>
                     <td>${item.tipo}</td>
                     <td class="text-wrap">${item.endereco}</td>
-                    <td><div style="display:flex; gap:2px;">${fotosHtml}</div></td>
+                    <td>${mapLink}</td>
+                    <td><div style="display:flex; gap:3px;">${fotosHtml}</div></td>
                     <td>
                         <button class="btn-action" style="background:var(--info); color:white" onclick="exibirInfo('${item.id}')">ℹ️</button>
                         ${item.status === 'Pendente' ? `
@@ -630,20 +655,20 @@
 
         window.exibirInfo = async (id) => {
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
-            alert(`TICKET: #${data.ticket}\nUF: ${data.uf}\nAREA: ${data.area}\nARD: ${data.ard}\n\nRELATO:\n${data.informacoes}`);
+            alert(`TICKET: #${data.ticket}\nSTATUS: ${data.status}\n\nRELATO HISTÓRICO:\n${data.informacoes}`);
         };
 
         window.excluirRegistro = async (id) => {
-            if (confirm("Excluir?")) { await supabaseClient.from('registros_alerta').delete().eq('id', id); renderTable(); }
+            if (confirm("Excluir registro?")) {
+                await supabaseClient.from('registros_alerta').delete().eq('id', id);
+                renderTable();
+            }
         };
 
         window.prepararEdicao = async (id) => {
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             setorSelecionado = data.setor;
             document.getElementById('editId').value = data.id;
-            document.getElementById('uf').value = data.uf || "";
-            document.getElementById('area').value = data.area || "";
-            document.getElementById('ard').value = data.ard || "";
             document.getElementById('empresa').value = data.empresa;
             document.getElementById('tecnicoNome').value = data.tecnico_nome;
             document.getElementById('dataRegistro').value = data.data_iso;

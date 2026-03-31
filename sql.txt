@@ -34,3 +34,44 @@ notify pgrst, 'reload schema';
 
 
 PWA -  PARA APLICATIVO
+
+=========================================================================================================
+
+
+-- 1. LIMPEZA
+drop table if exists registros_alerta;
+
+-- 2. CRIAÇÃO DA TABELA (Versão Atualizada com UF, Área e ARD)
+create table registros_alerta (
+  id uuid default gen_random_uuid () primary key,
+  ticket text,
+  tecnico_nome text,
+  empresa text,
+  setor text,
+  -- NOVAS COLUNAS ABAIXO:
+  uf text,
+  area text,
+  ard text,
+  data_iso date,
+  endereco text,
+  tipo text,
+  rede text,
+  informacoes text,
+  acao_tratativa text default 'Aguardando tratativa da gestão...',
+  localizacao text,
+  fotos_urls text,
+  status text default 'Pendente',
+  created_at timestamp with time zone default timezone ('utc'::text, now())
+);
+
+-- 3. HABILITAR SEGURANÇA (RLS)
+alter table registros_alerta enable row level security;
+
+-- 4. POLÍTICA DE ACESSO
+create policy "Acesso Total Autenticado" on registros_alerta for all to authenticated using (true)
+with
+  check (true);
+
+-- 5. ATUALIZAÇÃO DO CACHE
+notify pgrst,
+'reload schema';
