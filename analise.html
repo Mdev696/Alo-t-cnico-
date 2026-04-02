@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BACKLOG SETORES - Dashboard Administrativo</title>
+    <title>BACKLOG SETORES - Gestão Completa</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -12,10 +12,9 @@
             --vivo-grey-bg: #F2F2F2;
             --white: #ffffff;
             --dark: #333333;
-            --osp-color: #00a1ff;
-            --casa-color: #ff8a00;
-            --movel-color: #28a745;
             --finalizado-color: #20c997;
+            --prebaixa-color: #fd7e14;
+            --pendente-color: #dc3545;
             --btn-blue: #007bff;
             --btn-green: #28a745;
             --btn-orange: #fd7e14;
@@ -45,11 +44,12 @@
             margin: 0 auto;
         }
 
+        /* GRID DE FILTROS SUPERIORES */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 15px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .kpi-card {
@@ -57,8 +57,18 @@
             padding: 20px;
             border-radius: 12px;
             text-align: center;
-            border-bottom: 5px solid var(--vivo-purple);
+            border-bottom: 5px solid #ccc;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .kpi-card.active {
+            border-bottom-width: 10px;
         }
 
         .kpi-card h3 {
@@ -71,16 +81,52 @@
         .kpi-card .number {
             font-size: 2.2rem;
             font-weight: bold;
-            color: var(--vivo-purple);
             margin-top: 5px;
         }
 
-        .card-finalizado {
-            border-bottom-color: var(--finalizado-color);
+        .card-pendente.active {
+            border-color: var(--pendente-color);
         }
 
-        .card-finalizado .number {
-            color: var(--finalizado-color);
+        .card-prebaixa.active {
+            border-color: var(--prebaixa-color);
+        }
+
+        .card-fechado.active {
+            border-color: var(--finalizado-color);
+        }
+
+        /* LINHA DE FILTROS SELECT */
+        .filter-row {
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-row label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--vivo-purple);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+
+        .filter-row select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 0.85rem;
+            outline: none;
         }
 
         .backlog-section {
@@ -88,29 +134,32 @@
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            min-width: 900px;
         }
 
         th {
             background: #f8f9fa;
-            padding: 15px;
+            padding: 12px;
             text-align: left;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #555;
             border-bottom: 2px solid #eee;
         }
 
         td {
-            padding: 15px;
+            padding: 12px;
             border-bottom: 1px solid #eee;
             font-size: 0.85rem;
         }
 
+        /* MODAL & CARDS */
         .modal {
             display: none;
             position: fixed;
@@ -133,15 +182,6 @@
             position: relative;
         }
 
-        .close-modal {
-            position: absolute;
-            right: 25px;
-            top: 20px;
-            font-size: 30px;
-            cursor: pointer;
-            color: #999;
-        }
-
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -154,41 +194,15 @@
             font-weight: bold;
             color: var(--vivo-purple);
             font-size: 0.7rem;
-            margin-bottom: 4px;
             text-transform: uppercase;
         }
 
         .info-item div {
             background: #f9f9f9;
-            padding: 12px;
+            padding: 10px;
             border-radius: 6px;
             border: 1px solid #eee;
-            min-height: 18px;
-        }
-
-        .photo-gallery {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 15px 0;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-
-        .photo-gallery img {
-            width: 110px;
-            height: 110px;
-            object-fit: cover;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 1px solid #ddd;
-            transition: 0.2s;
-        }
-
-        .action-box {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px solid var(--vivo-purple);
+            margin-top: 4px;
         }
 
         .history-card {
@@ -209,52 +223,50 @@
         .history-card.baixa-concluida {
             border-left-color: var(--btn-green);
             background: #f1faf3;
-            border-width: 2px 2px 2px 10px;
         }
 
-        .history-actions {
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            display: flex;
-            gap: 5px;
-        }
-
-        .btn-mini {
-            padding: 4px 8px;
-            font-size: 0.6rem;
-            border: none;
-            border-radius: 3px;
+        .photo-gallery img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
             cursor: pointer;
+            border: 1px solid #ddd;
+            margin-right: 10px;
+        }
+
+        .status-pill {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
             color: white;
         }
 
         .btn-action {
-            padding: 12px 20px;
+            padding: 10px 18px;
             border: none;
             border-radius: 6px;
             color: white;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.8rem;
             transition: 0.3s;
         }
 
-        .status-pill {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
+        .close-modal {
+            position: absolute;
+            right: 25px;
+            top: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .baixa-form label {
+            display: block;
+            margin-top: 10px;
             font-weight: bold;
-        }
-
-        .pill-pendente {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .pill-finalizado {
-            background: #d1e7dd;
-            color: #0f5132;
+            font-size: 0.8rem;
         }
 
         .baixa-form input,
@@ -262,11 +274,10 @@
         .baixa-form textarea {
             width: 100%;
             padding: 10px;
-            margin-top: 5px;
+            margin: 5px 0 12px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 6px;
             box-sizing: border-box;
-            font-family: inherit;
         }
     </style>
 </head>
@@ -281,35 +292,58 @@
 
     <div class="dashboard-container">
         <div class="kpi-grid">
-            <div class="kpi-card">
-                <h3>OSP</h3>
-                <div id="count-osp" class="number">0</div>
+            <div class="kpi-card card-pendente active" onclick="filtrarStatus('Pendente', this)">
+                <h3>Pendentes</h3>
+                <div id="count-pendente" class="number" style="color:var(--pendente-color)">0</div>
             </div>
-            <div class="kpi-card">
-                <h3>CASA</h3>
-                <div id="count-casa" class="number">0</div>
+            <div class="kpi-card card-prebaixa" onclick="filtrarStatus('Aguardando Baixa', this)">
+                <h3>Pré-Baixa</h3>
+                <div id="count-prebaixa" class="number" style="color:var(--prebaixa-color)">0</div>
             </div>
-            <div class="kpi-card">
-                <h3>MÓVEL</h3>
-                <div id="count-movel" class="number">0</div>
-            </div>
-            <div class="kpi-card card-finalizado">
-                <h3>FINALIZADOS</h3>
-                <div id="count-finalizado" class="number">0</div>
-            </div>
-            <div class="kpi-card" style="background:var(--vivo-purple); border:none;">
-                <h3 style="color:white; opacity:0.8;">TOTAL TICKETS</h3>
-                <div id="count-total" class="number" style="color:white;">0</div>
+            <div class="kpi-card card-fechado" onclick="filtrarStatus('Finalizado', this)">
+                <h3>Fechados</h3>
+                <div id="count-finalizado" class="number" style="color:var(--finalizado-color)">0</div>
             </div>
         </div>
 
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>UF</label>
+                <select id="f-uf" onchange="renderizarTabela()">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>ÁREA</label>
+                <select id="f-area" onchange="renderizarTabela()">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>ARD</label>
+                <select id="f-ard" onchange="renderizarTabela()">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>SETOR</label>
+                <select id="f-setor" onchange="renderizarTabela()">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <button class="btn-mini"
+                style="margin-top:15px; border:none; background:none; cursor:pointer; color:var(--btn-red); font-weight:bold;"
+                onclick="limparFiltros()">Limpar Filtros</button>
+        </div>
+
         <section class="backlog-section">
-            <h2 style="font-size: 1.2rem; color: var(--vivo-purple); margin-bottom: 15px;">📥 BACKLOG ATIVO (PENDENTES)
-            </h2>
+            <h2 id="table-title" style="font-size: 1.1rem; color: var(--vivo-purple);">📥 LISTA: PENDENTES</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Ticket</th>
+                        <th>UF/Área</th>
+                        <th>ARD</th>
                         <th>Setor</th>
                         <th>Técnico / Empresa</th>
                         <th>Irregularidade</th>
@@ -325,14 +359,14 @@
     <div id="viewModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="fecharModal()">×</span>
-            <h2 style="color: var(--vivo-purple); margin: 0 0 25px 0;">Ticket <span id="m-ticket"></span></h2>
+            <h2 style="color: var(--vivo-purple); margin-top:0;">Ticket <span id="m-ticket"></span></h2>
             <input type="hidden" id="current-db-id">
 
             <div class="info-grid">
-                <div class="info-item"><label>Registro em</label>
+                <div class="info-item"><label>Data</label>
                     <div id="m-data"></div>
                 </div>
-                <div class="info-item"><label>Responsável</label>
+                <div class="info-item"><label>Técnico</label>
                     <div id="m-nome"></div>
                 </div>
                 <div class="info-item"><label>Irregularidade</label>
@@ -341,21 +375,16 @@
                 <div class="info-item"><label>Endereço</label>
                     <div id="m-endereco"></div>
                 </div>
-                <div class="info-item" style="grid-column: span 2;"><label>Localização GPS</label>
-                    <div id="m-geo"></div>
-                </div>
             </div>
 
             <div class="photo-gallery" id="m-fotos"></div>
 
-            <div class="action-box">
-                <label style="font-weight: bold; color: var(--vivo-purple); letter-spacing: 1px;">AÇÃO E
-                    TRATATIVA</label>
-                <div id="botoes-acao" style="margin: 20px 0; display: flex; gap: 10px;">
+            <div style="margin-top:25px; border-top: 2px solid #eee; padding-top:20px;">
+                <div id="botoes-acao" style="display: flex; gap: 10px; margin-bottom:20px;">
                     <button class="btn-action" style="background: var(--btn-orange);" onclick="adicionarInfo()">+
                         NOTA</button>
                     <button id="btn-dar-baixa" class="btn-action" style="background: var(--btn-green);"
-                        onclick="prepararBaixa()">✓ DAR BAIXA</button>
+                        onclick="prepararBaixa()">✓ VALIDAR BAIXA</button>
                     <button class="btn-action" style="background: var(--btn-red); margin-left: auto;"
                         onclick="excluirTicket()">🗑️ EXCLUIR</button>
                 </div>
@@ -369,40 +398,98 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        let todosDados = [];
+        let filtroStatusAtivo = 'Pendente';
+
         async function carregarDados() {
             const { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
             if (error) return;
+            todosDados = data;
 
-            document.getElementById('count-osp').innerText = data.filter(i => i.setor === 'OSP' && i.status !== 'Finalizado').length;
-            document.getElementById('count-casa').innerText = data.filter(i => i.setor === 'CASA CLIENTE' && i.status !== 'Finalizado').length;
-            document.getElementById('count-movel').innerText = data.filter(i => i.setor === 'MOVEL BACKBONE' && i.status !== 'Finalizado').length;
+            // Atualiza contadores superiores
+            document.getElementById('count-pendente').innerText = data.filter(i => i.status === 'Pendente').length;
+            document.getElementById('count-prebaixa').innerText = data.filter(i => i.status === 'Aguardando Baixa').length;
             document.getElementById('count-finalizado').innerText = data.filter(i => i.status === 'Finalizado').length;
-            document.getElementById('count-total').innerText = data.length;
 
-            const pendentes = data.filter(item => item.status !== 'Finalizado');
+            preencherSelects(data);
+            renderizarTabela();
+        }
 
-            document.getElementById('backlog-body').innerHTML = pendentes.map(item => `
+        function preencherSelects(data) {
+            const ufs = [...new Set(data.map(i => i.uf).filter(Boolean))].sort();
+            const areas = [...new Set(data.map(i => i.area).filter(Boolean))].sort();
+            const ards = [...new Set(data.map(i => i.ard).filter(Boolean))].sort();
+            const setores = [...new Set(data.map(i => i.setor).filter(Boolean))].sort();
+
+            const atualizar = (id, lista) => {
+                const el = document.getElementById(id);
+                const valorAtual = el.value;
+                el.innerHTML = '<option value="">Todos</option>' + lista.map(v => `<option value="${v}">${v}</option>`).join('');
+                el.value = valorAtual; // Mantém seleção se houver
+            };
+
+            atualizar('f-uf', ufs);
+            atualizar('f-area', areas);
+            atualizar('f-ard', ards);
+            atualizar('f-setor', setores);
+        }
+
+        function filtrarStatus(status, el) {
+            filtroStatusAtivo = status;
+            document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('table-title').innerText = `📥 LISTA: ${status.toUpperCase()}`;
+            renderizarTabela();
+        }
+
+        function renderizarTabela() {
+            const fUf = document.getElementById('f-uf').value;
+            const fArea = document.getElementById('f-area').value;
+            const fArd = document.getElementById('f-ard').value;
+            const fSetor = document.getElementById('f-setor').value;
+
+            const filtrados = todosDados.filter(i => {
+                return i.status === filtroStatusAtivo &&
+                    (!fUf || i.uf === fUf) &&
+                    (!fArea || i.area === fArea) &&
+                    (!fArd || i.ard === fArd) &&
+                    (!fSetor || i.setor === fSetor);
+            });
+
+            document.getElementById('backlog-body').innerHTML = filtrados.map(item => `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
+                    <td>${item.uf || '--'}/${item.area || '--'}</td>
+                    <td>${item.ard || '--'}</td>
                     <td>${item.setor}</td>
-                    <td>${item.tecnico_nome}<br><small style="color:gray">${item.empresa}</small></td>
+                    <td>${item.tecnico_nome}<br><small>${item.empresa}</small></td>
                     <td>${item.tipo}</td>
-                    <td><span class="status-pill pill-pendente">Pendente</span></td>
-                    <td><button class="btn-action" style="background:var(--btn-blue); padding:5px 10px;" onclick="abrirVisualizacao('${item.id}')">Visualizar</button></td>
+                    <td><span class="status-pill" style="background:${item.status === 'Finalizado' ? 'var(--finalizado-color)' : (item.status === 'Pendente' ? 'var(--pendente-color)' : 'var(--prebaixa-color)')}">${item.status}</span></td>
+                    <td><button class="btn-action" style="background:var(--btn-blue); padding:5px 10px;" onclick="abrirVisualizacao('${item.id}')">Ver</button></td>
                 </tr>
             `).join('');
         }
 
+        function limparFiltros() {
+            document.getElementById('f-uf').value = "";
+            document.getElementById('f-area').value = "";
+            document.getElementById('f-ard').value = "";
+            document.getElementById('f-setor').value = "";
+            renderizarTabela();
+        }
+
+        // --- FUNÇÕES DE MODAL (ORIGINAIS MANTIDAS) ---
+
         async function abrirVisualizacao(id) {
             const { data, error } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             if (error) return;
+
             document.getElementById('current-db-id').value = data.id;
             document.getElementById('m-ticket').innerText = `#${data.ticket}`;
             document.getElementById('m-data').innerText = new Date(data.created_at).toLocaleString();
-            document.getElementById('m-nome').innerText = data.tecnico_nome + " (" + data.empresa + ")";
+            document.getElementById('m-nome').innerText = `${data.tecnico_nome} (${data.empresa})`;
             document.getElementById('m-tipo').innerText = data.tipo;
             document.getElementById('m-endereco').innerText = data.endereco;
-            document.getElementById('m-geo').innerHTML = `<a href="https://www.google.com/maps?q=${data.localizacao}" target="_blank" style="color:var(--vivo-purple)">📍 Ver no Google Maps</a>`;
 
             const fotos = data.fotos_urls ? data.fotos_urls.split(',') : [];
             document.getElementById('m-fotos').innerHTML = fotos.map(url => `<img src="${url}" onclick="window.open('${url}')">`).join('');
@@ -412,99 +499,67 @@
             const historicoArray = data.informacoes ? data.informacoes.split('---').filter(t => t.trim() !== "") : ["Sem relatos iniciais."];
 
             document.getElementById('m-historico').innerHTML = historicoArray.map((msg, index) => {
-                const isBaixa = msg.includes('✅ BAIXA');
-                const cardClass = isBaixa ? 'baixa-concluida' : (index === 0 ? 'principal' : '');
-                const label = isBaixa ? '🏁 INFORMAÇÕES DA BAIXA' : (index === 0 ? 'TRATATIVA PRINCIPAL' : 'ATUALIZAÇÃO');
-
+                const isBaixa = msg.includes('✅ BAIXA') || msg.includes('✅ VALIDADO');
+                const isRecusa = msg.includes('⚠️ NÃO VALIDADO');
+                let cardClass = isBaixa ? 'baixa-concluida' : (index === 0 ? 'principal' : '');
+                const label = isBaixa ? '🏁 INFORMAÇÕES DA BAIXA' : (isRecusa ? '⚠️ RETORNO DE TRATATIVA' : (index === 0 ? 'TRATATIVA PRINCIPAL' : 'ATUALIZAÇÃO'));
                 return `
-                <div class="history-card ${cardClass}">
-                    <div class="history-actions">
-                        <button class="btn-mini" style="background:var(--btn-blue)" onclick="editarNota(${index})">✏️</button>
-                        <button class="btn-mini" style="background:var(--btn-red)" onclick="excluirNota(${index})">🗑️</button>
-                    </div>
-                    <strong>${label}</strong>
-                    <p style="white-space: pre-wrap; margin: 8px 0;">${msg.trim()}</p>
-                </div>
-                `;
+                    <div class="history-card ${cardClass}">
+                        <div style="position:absolute; right:10px; top:10px; display:flex; gap:5px;">
+                            <button style="border:none; cursor:pointer; background:var(--btn-blue); color:white; border-radius:3px; padding:2px 5px;" onclick="editarNota(${index})">✏️</button>
+                            <button style="border:none; cursor:pointer; background:var(--btn-red); color:white; border-radius:3px; padding:2px 5px;" onclick="excluirNota(${index})">🗑️</button>
+                        </div>
+                        <strong>${label}</strong>
+                        <p style="white-space: pre-wrap; margin: 8px 0; font-size:0.85rem;">${msg.trim()}</p>
+                    </div>`;
             }).join('');
-
             document.getElementById('viewModal').style.display = "block";
         }
 
         function prepararBaixa() {
             const id = document.getElementById('current-db-id').value;
-            const dataAtual = new Date().toLocaleString();
             document.getElementById('m-historico').innerHTML = `
                 <div class="history-card principal baixa-form" style="border-left-color: var(--btn-green); background: #f9fffb;">
-                    <strong style="color:var(--btn-green)">📋 FORMULÁRIO DE BAIXA</strong>
-                    <label>Data de Registro (Automático)</label>
-                    <input type="text" value="${dataAtual}" disabled style="background:#eee">
-                    
-                    <label>Motivo da Baixa</label>
+                    <strong style="color:var(--btn-green)">📋 FORMULÁRIO DE VALIDAÇÃO</strong>
+                    <label>Resultado da Validação</label>
                     <select id="baixa-motivo">
-                        <option>Normalizado</option>
-                        <option>Improcedente</option>
-                        <option>Transferência de Setor</option>
-                        <option>Outros</option>
+                        <option value="Finalizado">Validado (Concluir e Remover)</option>
+                        <option value="Pendente">Não Validado (Retornar para Técnico)</option>
                     </select>
-                    
                     <label>Observação Final</label>
-                    <textarea id="baixa-obs" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
-                    
-                    <label>Selecionar Foto da Galeria</label>
+                    <textarea id="baixa-obs" rows="3" placeholder="Descreva a solução ou motivo da recusa..."></textarea>
+                    <label>Foto da Solução (Opcional)</label>
                     <input type="file" id="baixa-galeria" accept="image/*">
-                    
                     <div style="display:flex; gap:10px; margin-top:15px;">
-                        <button class="btn-action" style="background:var(--btn-green); flex:1" onclick="confirmarFinalizacao()">CONCLUIR E REMOVER DO BACKLOG</button>
-                        <button class="btn-action" style="background:#888; flex:1" onclick="abrirVisualizacao('${id}')">VOLTAR</button>
+                        <button class="btn-action" style="background:var(--btn-green); flex:1" onclick="confirmarFinalizacao()">CONCLUIR AÇÃO</button>
+                        <button class="btn-action" style="background:#888; flex:1" onclick="abrirVisualizacao('${id}')">CANCELAR</button>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
 
         async function confirmarFinalizacao() {
             const id = document.getElementById('current-db-id').value;
-            const motivo = document.getElementById('baixa-motivo').value;
+            const novoStatus = document.getElementById('baixa-motivo').value;
             const obs = document.getElementById('baixa-obs').value;
             const fileInput = document.getElementById('baixa-galeria');
-
-            if (!obs) return alert("Por favor, preencha a observação final.");
-
+            if (!obs) return alert("Preencha a observação.");
             let fotoUrl = "";
-
-            // CORREÇÃO AQUI: Ajustado para o bucket fotos_irregularidades
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const fileName = `baixa_${id}_${Date.now()}.png`;
-
-                const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                    .from('fotos_irregularidades')
-                    .upload(fileName, file);
-
-                if (!uploadError) {
-                    const { data: publicUrlData } = supabaseClient.storage
-                        .from('fotos_irregularidades')
-                        .getPublicUrl(fileName);
-                    fotoUrl = publicUrlData.publicUrl;
-                } else {
-                    console.error("Erro no upload:", uploadError);
+                const { data: upData, error: upErr } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, file);
+                if (!upErr) {
+                    const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
+                    fotoUrl = pUrl.publicUrl;
                 }
             }
-
             const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes, fotos_urls').eq('id', id).single();
-            const novaInfo = (ticket.informacoes || "") + " --- ✅ BAIXA (" + new Date().toLocaleString() + "):\nMotivo: " + motivo + "\nObs: " + obs;
-
+            const prefixo = novoStatus === 'Finalizado' ? '✅ VALIDADO' : '⚠️ NÃO VALIDADO';
+            const novaInfo = (ticket.informacoes || "") + " --- " + prefixo + " (" + new Date().toLocaleString() + "):\n" + obs;
             let fotosFinal = ticket.fotos_urls || "";
             if (fotoUrl) fotosFinal += (fotosFinal ? "," : "") + fotoUrl;
-
-            await supabaseClient.from('registros_alerta').update({
-                status: 'Finalizado',
-                informacoes: novaInfo,
-                fotos_urls: fotosFinal
-            }).eq('id', id);
-
-            fecharModal();
-            carregarDados();
+            await supabaseClient.from('registros_alerta').update({ status: novoStatus, informacoes: novaInfo, fotos_urls: fotosFinal }).eq('id', id);
+            fecharModal(); carregarDados();
         }
 
         async function adicionarInfo() {
@@ -521,8 +576,8 @@
             const id = document.getElementById('current-db-id').value;
             const { data: ticket } = await supabaseClient.from('registros_alerta').select('informacoes').eq('id', id).single();
             let arr = ticket.informacoes.split('---');
-            const novo = prompt("Editar:", arr[index].trim());
-            if (novo) { arr[index] = " " + novo + " "; await supabaseClient.from('registros_alerta').update({ informacoes: arr.join('---') }).eq('id', id); abrirVisualizacao(id); }
+            const novo = prompt("Editar nota:", arr[index].trim());
+            if (novo !== null) { arr[index] = " " + novo + " "; await supabaseClient.from('registros_alerta').update({ informacoes: arr.join('---') }).eq('id', id); abrirVisualizacao(id); }
         }
 
         async function excluirNota(index) {
@@ -536,7 +591,7 @@
         }
 
         async function excluirTicket() {
-            if (!confirm("Excluir ticket permanentemente?")) return;
+            if (!confirm("Excluir permanentemente?")) return;
             const id = document.getElementById('current-db-id').value;
             await supabaseClient.from('registros_alerta').delete().eq('id', id);
             fecharModal(); carregarDados();

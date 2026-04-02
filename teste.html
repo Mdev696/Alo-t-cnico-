@@ -3,256 +3,452 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BACKLOG SETORES - Dashboard Administrativo Fase 2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ALO TECNICO</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#660099">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --vivo-purple: #660099;
             --vivo-grey-bg: #F2F2F2;
+            --vivo-grey-text: #666666;
             --white: #ffffff;
             --dark: #333333;
-            --finalizado-color: #20c997;
-            --prebaixa-color: #fd7e14;
-            --pendente-color: #dc3545;
-            --btn-blue: #007bff;
-            --btn-green: #28a745;
-            --btn-orange: #fd7e14;
-            --btn-red: #dc3545;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --prebaixa: #ff8a00;
         }
 
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             margin: 0;
+            padding: 0;
             background-color: var(--vivo-grey-bg);
             color: var(--dark);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--vivo-purple);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         header {
-            background: var(--vivo-purple);
-            color: white;
-            padding: 20px 40px;
+            background-color: var(--vivo-purple);
+            color: var(--white);
+            padding: 10px 15px;
+            text-align: center;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            flex-direction: column;
         }
 
-        .dashboard-container {
-            padding: 30px 40px;
-            max-width: 1400px;
+        .header-top {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #user-greeting {
+            font-size: 0.75rem;
+            font-weight: normal;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .btn-logout {
+            background: none;
+            border: 1px solid white;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        main {
+            padding: 15px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        /* GRID DE FILTROS - FASE 2 */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .kpi-card {
-            background: white;
-            padding: 20px;
+        .card {
+            background: var(--white);
+            padding: 18px;
             border-radius: 12px;
-            text-align: center;
-            border-bottom: 5px solid #ccc;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            cursor: pointer;
-            transition: 0.3s;
+            margin-bottom: 20px;
         }
 
-        .kpi-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .kpi-card.active {
-            border-bottom-width: 10px;
-        }
-
-        .kpi-card h3 {
-            font-size: 0.8rem;
-            color: #666;
-            margin: 0;
-            text-transform: uppercase;
-        }
-
-        .kpi-card .number {
-            font-size: 2.2rem;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-
-        .card-pendente.active {
-            border-color: var(--pendente-color);
-        }
-
-        .card-pendente .number {
-            color: var(--pendente-color);
-        }
-
-        .card-prebaixa.active {
-            border-color: var(--prebaixa-color);
-        }
-
-        .card-prebaixa .number {
-            color: var(--prebaixa-color);
-        }
-
-        .card-fechado.active {
-            border-color: var(--finalizado-color);
-        }
-
-        .card-fechado .number {
-            color: var(--finalizado-color);
-        }
-
-        .backlog-section {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .table-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        h2 {
+            color: var(--vivo-purple);
+            font-size: 1.1rem;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
             margin-bottom: 15px;
+        }
+
+        .btn-sector {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0;
+            border: 2px solid var(--vivo-purple);
+            border-radius: 10px;
+            background: var(--white);
+            color: var(--vivo-purple);
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        label {
+            display: block;
+            margin: 12px 0 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--vivo-grey-text);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            background-color: #fafafa;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--vivo-purple);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .tabs-history {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #e0e0e0;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .tab-btn.active {
+            background: var(--vivo-purple);
+            color: white;
+        }
+
+        .search-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .search-container input {
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 10px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            font-size: 0.7rem;
+            min-width: 1100px;
         }
 
         th {
-            background: #f8f9fa;
-            padding: 15px;
             text-align: left;
-            font-size: 0.75rem;
-            color: #555;
-            border-bottom: 2px solid #eee;
-            text-transform: uppercase;
+            background: #f4f4f4;
+            padding: 10px 5px;
+            color: var(--vivo-purple);
+            border-bottom: 2px solid #ddd;
         }
 
         td {
-            padding: 15px;
+            padding: 8px 5px;
             border-bottom: 1px solid #eee;
-            font-size: 0.85rem;
         }
 
-        .status-pill {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: bold;
-            color: white;
+        .hidden {
+            display: none !important;
         }
 
-        /* MODAL E OUTROS ESTILOS MANTIDOS DA VERSÃO ANTERIOR */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            overflow-y: auto;
-        }
-
-        .modal-content {
-            background: white;
-            margin: 2% auto;
-            padding: 35px;
-            width: 90%;
-            max-width: 850px;
-            border-radius: 15px;
-            position: relative;
-        }
-
-        .close-modal {
-            position: absolute;
-            right: 25px;
-            top: 20px;
-            font-size: 30px;
+        .thumb-foto {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ddd;
             cursor: pointer;
-            color: #999;
         }
 
         .btn-action {
-            padding: 8px 15px;
             border: none;
-            border-radius: 6px;
-            color: white;
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 2px;
+        }
+
+        .text-wrap {
+            max-width: 120px;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+
+        .load-more-btn {
+            width: 100%;
+            padding: 10px;
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-top: 10px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.8rem;
+            color: var(--vivo-purple);
         }
     </style>
 </head>
 
 <body>
 
-    <header>
-        <h1>BACKLOG SETORES | GESTÃO FASE 2</h1>
-        <button class="btn-action" style="background:rgba(255,255,255,0.2)" onclick="carregarDados()">🔄
-            ATUALIZAR</button>
-    </header>
-
-    <div class="dashboard-container">
-        <div class="kpi-grid">
-            <div class="kpi-card card-pendente active" onclick="filtrarStatus('Pendente', this)">
-                <h3>Pendentes</h3>
-                <div id="count-pendente" class="number">0</div>
-            </div>
-            <div class="kpi-card card-prebaixa" onclick="filtrarStatus('Aguardando Baixa', this)">
-                <h3>Pré-Baixa</h3>
-                <div id="count-prebaixa" class="number">0</div>
-            </div>
-            <div class="kpi-card card-fechado" onclick="filtrarStatus('Finalizado', this)">
-                <h3>Fechados</h3>
-                <div id="count-finalizado" class="number">0</div>
-            </div>
+    <div id="login-screen">
+        <div class="card" style="width: 90%; max-width: 350px;">
+            <h2 style="text-align: center;">Acesso ao Portal</h2>
+            <form id="loginForm">
+                <label>E-mail</label>
+                <input type="email" id="loginEmail" placeholder="Digite seu e-mail" required>
+                <label>Senha</label>
+                <input type="password" id="loginPass" required>
+                <div style="margin-top:10px; font-size:0.8rem; color: #666;">
+                    <input type="checkbox" id="rememberMe"> Lembrar acesso
+                </div>
+                <button type="submit" class="btn-submit" id="loginBtn">ENTRAR</button>
+            </form>
         </div>
-
-        <section class="backlog-section">
-            <div class="table-controls">
-                <h2 id="table-title" style="font-size: 1.2rem; color: var(--vivo-purple); margin: 0;">📥 LISTA:
-                    PENDENTES</h2>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ticket</th>
-                        <th>UF/Área</th>
-                        <th>ARD</th>
-                        <th>Setor</th>
-                        <th>Técnico / Empresa</th>
-                        <th>Irregularidade</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="backlog-body">
-                </tbody>
-            </table>
-        </section>
     </div>
 
-    <div id="viewModal" class="modal">
+    <div id="modalPreBaixa" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="fecharModal()">×</span>
-            <h2 id="m-ticket"></h2>
-            <div id="m-historico"></div>
-            <button class="btn-action" style="background:var(--btn-red)" onclick="excluirTicket()">Excluir</button>
+            <h2>🛠️ Pré-Baixa do Ticket</h2>
+            <input type="hidden" id="preBaixaId">
+            <label>Relato da resolução:</label>
+            <select id="pre-baixa-motivo">
+                <option>Normalizado</option>
+                <option>Improcedente</option>
+                <option>Transferência de Setor</option>
+            </select>
+            <label>Evidência (Foto):</label>
+            <input type="file" id="fotoBaixa" accept="image/*">
+            <label>Observações</label>
+            <textarea id="obsBaixa" rows="2"></textarea>
+            <button type="button" class="btn-submit" onclick="confirmarPreBaixa()" id="btnConfirmarBaixa">ENVIAR PARA
+                GESTÃO</button>
+            <button type="button" onclick="fecharModal()"
+                style="width:100%; background:none; border:none; margin-top:10px;">Cancelar</button>
         </div>
+    </div>
+
+    <div id="portal-content" class="hidden">
+        <header>
+            <div class="header-top">
+                <div style="width: 50px;"></div>
+                <span>ALÔ TÉCNICO</span>
+                <button class="btn-logout" onclick="logout()">SAIR</button>
+            </div>
+            <div id="user-greeting"></div>
+        </header>
+
+        <main>
+            <div id="cadastro-container">
+                <section id="step1" class="card">
+                    <h2>1. Selecione o Setor</h2>
+                    <button class="btn-sector" onclick="selectSector('OSP')">OSP</button>
+                    <button class="btn-sector" onclick="selectSector('CASA CLIENTE')">CASA CLIENTE</button>
+                </section>
+
+                <section id="step2" class="card hidden">
+                    <h2 id="display-sector">Setor: -</h2>
+                    <form id="irregularityForm">
+                        <input type="hidden" id="editId" value="">
+                        <input type="hidden" id="geoCoords" value="">
+
+                        <label>UF</label>
+                        <select id="uf" required onchange="carregarAreas(this.value)">
+                            <option value="">Selecione...</option>
+                            <option value="RJ">RJ</option>
+                            <option value="ES">ES</option>
+                        </select>
+
+                        <label>Área</label>
+                        <select id="area" required onchange="carregarARDs(this.value)">
+                            <option value="">Selecione a UF primeiro...</option>
+                        </select>
+
+                        <label>ARD</label>
+                        <select id="ard" required>
+                            <option value="">Selecione a Área primeiro...</option>
+                        </select>
+
+                        <label>Empresa</label>
+                        <select id="empresa" required>
+                            <option value="">Selecione...</option>
+                            <option value="TEL">TEL</option>
+                            <option value="HALLEN">HALLEN</option>
+                            <option value="TLP">TLP</option>
+                            <option value="VIVO">VIVO</option>
+                            <option value="ICOMON">ICOMON</option>
+                        </select>
+
+                        <label>Nome do Técnico</label>
+                        <input type="text" id="tecnicoNome" required>
+
+                        <label>Data de Registro</label>
+                        <input type="date" id="dataRegistro" required>
+
+                        <label>Fotos da Irregularidade</label>
+                        <input type="file" id="fotos" accept="image/*" multiple onchange="capturarLocalizacao()">
+
+                        <label>Endereço Completo</label>
+                        <input type="text" id="endereco" placeholder="Rua, Bairro, Cidade" required>
+
+                        <label>Tipo de Irregularidade</label>
+                        <select id="tipo" required>
+                            <option value="">Selecione...</option>
+                            <option>Caixa Danificada</option>
+                            <option>Cabo Baixo</option>
+                            <option>Rede Danificada</option>
+                            <option>Aviso Enel</option>
+                            <option>Aviso Light</option>
+                            <option>Travessia Baixa</option>
+                            <option>Emenda Danificada</option>
+                            <option>Poste não equipado</option>
+                        </select>
+
+                        <label>Rede</label>
+                        <select id="rede" required>
+                            <option value="">Selecione...</option>
+                            <option value="Aéreo">Aéreo</option>
+                            <option value="Subterrâneo">Subterrâneo</option>
+                        </select>
+
+                        <label>Informações Adicionais</label>
+                        <textarea id="informacoes" rows="3" required></textarea>
+
+                        <button type="submit" id="btnSubmitForm" class="btn-submit">SALVAR NO BANCO</button>
+                        <button type="button" onclick="resetForm()"
+                            style="width:100%; border:none; background:none; margin-top:10px;">Voltar</button>
+                    </form>
+                </section>
+            </div>
+
+            <section class="card">
+                <h2>Histórico de Tickets</h2>
+
+                <div class="search-container">
+                    <input type="text" id="searchTicket" placeholder="Busca por Ticket..." onkeyup="renderTable()">
+                    <input type="text" id="searchTecnico" placeholder="Busca por Técnico..." onkeyup="renderTable()">
+                </div>
+
+                <div class="tabs-history">
+                    <button id="tab-pendentes" class="tab-btn active" onclick="switchTab('pendente')">PENDENTES</button>
+                    <button id="tab-fechados" class="tab-btn" onclick="switchTab('fechado')">PRÉ-BAIXA</button>
+                </div>
+
+                <div class="table-container">
+                    <table id="ticketsTable">
+                        <thead>
+                            <tr>
+                                <th>Ticket</th>
+                                <th>UF/Área</th>
+                                <th>ARD</th>
+                                <th>Técnico</th>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th>Endereço</th>
+                                <th>Localização</th>
+                                <th>Fotos</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <button id="btnLoadMore" class="load-more-btn hidden" onclick="loadMore()">Ver mais resultados (Máx
+                        100)</button>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script>
@@ -260,71 +456,290 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmamVkdWZvbGtqcnNhamZsZm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMDMzNDcsImV4cCI6MjA4Nzg3OTM0N30.yoN65XgArlwDFAtVtIaKQIOsuIUDZCazqxUZ9Ckms7E';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let dadosCompletos = [];
-        let filtroAtual = 'Pendente';
+        let setorSelecionado = "";
+        let abaAtiva = "pendente";
+        let dadosGeograficos = [];
+        let limitExibicao = 10;
 
-        async function carregarDados() {
-            const { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
+        window.onload = () => {
+            const savedEmail = localStorage.getItem('saved_email');
+            const savedPass = localStorage.getItem('saved_pass');
+            if (savedEmail && savedPass) {
+                document.getElementById('loginEmail').value = savedEmail;
+                document.getElementById('loginPass').value = savedPass;
+                document.getElementById('rememberMe').checked = true;
+            }
+        };
+
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) showPortal();
+        }
+        checkSession();
+
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPass').value;
+            const remember = document.getElementById('rememberMe').checked;
+            const btn = document.getElementById('loginBtn');
+            btn.innerText = "VALIDANDO..."; btn.disabled = true;
+
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) { alert("Erro: Credenciais inválidas"); btn.innerText = "ENTRAR"; btn.disabled = false; }
+            else {
+                if (remember) { localStorage.setItem('saved_email', email); localStorage.setItem('saved_pass', password); }
+                showPortal();
+            }
+        };
+
+        async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
+
+        async function showPortal() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('portal-content').classList.remove('hidden');
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            let rawName = user.user_metadata.full_name || user.email.split('@')[0];
+            let firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1).split(/[\s._]/)[0].toLowerCase();
+            document.getElementById('user-greeting').innerText = `Olá, ${firstName}`;
+            renderTable();
+        }
+
+        async function carregarAreas(ufSelecionada) {
+            if (!ufSelecionada) return;
+            const areaSelect = document.getElementById('area');
+            const ardSelect = document.getElementById('ard');
+            areaSelect.innerHTML = '<option value="">Carregando...</option>';
+            const { data, error } = await supabaseClient.from('apoio_geografico').select('*').eq('uf', ufSelecionada);
+            if (error) return;
+            dadosGeograficos = data;
+            const areasUnicas = [...new Set(data.map(item => item.area))].sort();
+            areaSelect.innerHTML = '<option value="">Selecione a Área...</option>';
+            areasUnicas.forEach(area => areaSelect.innerHTML += `<option value="${area}">${area}</option>`);
+            ardSelect.innerHTML = '<option value="">Selecione a Área primeiro...</option>';
+        }
+
+        function carregarARDs(areaSelecionada) {
+            const ardSelect = document.getElementById('ard');
+            const ardsFiltrados = dadosGeograficos.filter(item => item.area === areaSelecionada).map(item => item.ard).sort();
+            ardSelect.innerHTML = '<option value="">Selecione o ARD...</option>';
+            ardsFiltrados.forEach(ard => ardSelect.innerHTML += `<option value="${ard}">${ard}</option>`);
+        }
+
+        function switchTab(aba) {
+            abaAtiva = aba;
+            limitExibicao = 10;
+            document.getElementById('tab-pendentes').classList.toggle('active', aba === 'pendente');
+            document.getElementById('tab-fechados').classList.toggle('active', aba === 'fechado');
+            renderTable();
+        }
+
+        function loadMore() {
+            limitExibicao = 100;
+            renderTable();
+        }
+
+        function capturarLocalizacao() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    document.getElementById('geoCoords').value = `${pos.coords.latitude},${pos.coords.longitude}`;
+                });
+            }
+        }
+
+        function selectSector(setor) {
+            setorSelecionado = setor;
+            document.getElementById('display-sector').innerText = "Setor: " + setor;
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            document.getElementById('dataRegistro').value = new Date().toISOString().split('T')[0];
+        }
+
+        async function uploadFotos(files, prefix) {
+            const urls = [];
+            for (let i = 0; i < files.length; i++) {
+                const fileName = `fotos/${prefix}_${Date.now()}_${i}.png`;
+                const { data, error } = await supabaseClient.storage.from('fotos_irregularidades').upload(fileName, files[i]);
+                if (!error) {
+                    const { data: pUrl } = supabaseClient.storage.from('fotos_irregularidades').getPublicUrl(fileName);
+                    urls.push(pUrl.publicUrl);
+                }
+            }
+            return urls;
+        }
+
+        document.getElementById('irregularityForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const btn = document.getElementById('btnSubmitForm');
+            const files = document.getElementById('fotos').files;
+            btn.innerText = "ENVIANDO..."; btn.disabled = true;
+
+            let ticketGerado = id ? null : Math.floor(10000 + Math.random() * 90000).toString();
+            let linksFotos = await uploadFotos(files, ticketGerado || "edit");
+
+            const registro = {
+                setor: setorSelecionado,
+                uf: document.getElementById('uf').value,
+                area: document.getElementById('area').value,
+                ard: document.getElementById('ard').value,
+                empresa: document.getElementById('empresa').value,
+                tecnico_nome: document.getElementById('tecnicoNome').value,
+                data_iso: document.getElementById('dataRegistro').value,
+                endereco: document.getElementById('endereco').value,
+                tipo: document.getElementById('tipo').value,
+                rede: document.getElementById('rede').value,
+                informacoes: document.getElementById('informacoes').value,
+                localizacao: document.getElementById('geoCoords').value,
+                status: 'Pendente'
+            };
+
+            if (!id) registro.ticket = ticketGerado;
+            if (linksFotos.length > 0) registro.fotos_urls = linksFotos.join(',');
+
+            const res = id ? await supabaseClient.from('registros_alerta').update(registro).eq('id', id)
+                : await supabaseClient.from('registros_alerta').insert([registro]);
+
+            if (res.error) alert("Erro: " + res.error.message);
+            else { alert("Sucesso!"); resetForm(); renderTable(); }
+            btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
+        };
+
+        async function renderTable() {
+            const searchTkt = document.getElementById('searchTicket').value.toLowerCase();
+            const searchTec = document.getElementById('searchTecnico').value.toLowerCase();
+
+            let { data, error } = await supabaseClient.from('registros_alerta')
+                .select('*')
+                .order('created_at', { ascending: false });
+
             if (error) return;
 
-            dadosCompletos = data;
+            // Filtro de Aba
+            let filtered = data.filter(item => abaAtiva === 'fechado' ? item.status === 'Aguardando Baixa' : item.status === 'Pendente');
 
-            // Atualiza contadores dos cards
-            document.getElementById('count-pendente').innerText = data.filter(i => i.status === 'Pendente').length;
-            document.getElementById('count-prebaixa').innerText = data.filter(i => i.status === 'Aguardando Baixa').length;
-            document.getElementById('count-finalizado').innerText = data.filter(i => i.status === 'Finalizado').length;
+            // Filtros de Busca
+            if (searchTkt) filtered = filtered.filter(item => item.ticket.toString().includes(searchTkt));
+            if (searchTec) filtered = filtered.filter(item => item.tecnico_nome.toLowerCase().includes(searchTec));
 
-            renderizarTabela();
-        }
+            // Controle de Volume
+            const totalResultados = filtered.length;
+            const sliceFinal = filtered.slice(0, limitExibicao);
 
-        function filtrarStatus(status, elemento) {
-            filtroAtual = status;
+            const btnLoad = document.getElementById('btnLoadMore');
+            if (totalResultados > limitExibicao && limitExibicao < 100) {
+                btnLoad.classList.remove('hidden');
+                btnLoad.innerText = `Mostrar mais resultados (Total: ${totalResultados})`;
+            } else {
+                btnLoad.classList.add('hidden');
+            }
 
-            // UI: Ativar card selecionado
-            document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active'));
-            elemento.classList.add('active');
-
-            // UI: Atualizar título
-            const titulos = { 'Pendente': 'PENDENTES', 'Aguardando Baixa': 'PRÉ-BAIXA', 'Finalizado': 'FECHADOS' };
-            document.getElementById('table-title').innerText = `📥 LISTA: ${titulos[status]}`;
-
-            renderizarTabela();
-        }
-
-        function renderizarTabela() {
-            const listaFiltrada = dadosCompletos.filter(item => item.status === filtroAtual);
-            const tbody = document.getElementById('backlog-body');
-
-            tbody.innerHTML = listaFiltrada.map(item => {
-                const corStatus = item.status === 'Pendente' ? 'var(--pendente-color)' : (item.status === 'Finalizado' ? 'var(--finalizado-color)' : 'var(--prebaixa-color)');
+            const tbody = document.querySelector('#ticketsTable tbody');
+            tbody.innerHTML = sliceFinal.map(item => {
+                const links = item.fotos_urls ? item.fotos_urls.split(',') : [];
+                const fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
+                const locBtn = item.localizacao ? `<button class="btn-action" style="background:#eee;" onclick="window.open('https://www.google.com/maps?q=${item.localizacao}', '_blank')">📍 Mapa</button>` : '--';
 
                 return `
                 <tr>
                     <td><b>#${item.ticket}</b></td>
                     <td>${item.uf || '--'} / ${item.area || '--'}</td>
                     <td>${item.ard || '--'}</td>
-                    <td>${item.setor}</td>
-                    <td><b>${item.tecnico_nome}</b><br><small style="color:gray">${item.empresa}</small></td>
+                    <td class="text-wrap">${item.tecnico_nome}</td>
+                    <td>${item.data_iso.split('-').reverse().join('/')}</td>
                     <td>${item.tipo}</td>
-                    <td><span class="status-pill" style="background:${corStatus}">${item.status}</span></td>
+                    <td class="text-wrap">${item.endereco}</td>
+                    <td style="text-align:center">${locBtn}</td>
+                    <td><div style="display:flex; gap:2px;">${fotosHtml}</div></td>
                     <td>
-                        <button class="btn-action" style="background:var(--btn-blue); padding:5px 10px;" onclick="abrirVisualizacao('${item.id}')">Visualizar</button>
+                        <button class="btn-action" style="background:var(--info); color:white" onclick="exibirInfo('${item.id}')">ℹ️</button>
+                        ${item.status === 'Pendente' ? `
+                            <button class="btn-action" style="background:var(--prebaixa); color:white" onclick="solicitarPreBaixa('${item.id}')">🛠️</button>
+                            <button class="btn-action" style="background:var(--warning)" onclick="prepararEdicao('${item.id}')">✎</button>
+                        ` : ''}
+                        <button class="btn-action" style="background:var(--danger); color:white" onclick="excluirRegistro('${item.id}')">🗑️</button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
-        // Funções de Modal e Ações (Mantidas da estrutura original)
-        async function abrirVisualizacao(id) {
-            // Lógica original de carregar modal...
-            alert("Abrindo ticket ID: " + id);
-            // Aqui você deve manter a sua função 'abrirVisualizacao' completa que já funcionava.
+        window.exibirInfo = async (id) => {
+            const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
+            alert(`TICKET: #${data.ticket}\nUF: ${data.uf}\nAREA: ${data.area}\nARD: ${data.ard}\n\nRELATO:\n${data.informacoes}`);
+        };
+
+        window.excluirRegistro = async (id) => {
+            if (confirm("Excluir?")) { await supabaseClient.from('registros_alerta').delete().eq('id', id); renderTable(); }
+        };
+
+        window.solicitarPreBaixa = (id) => {
+            document.getElementById('preBaixaId').value = id;
+            document.getElementById('modalPreBaixa').style.display = 'flex';
+        };
+
+        function fecharModal() { document.getElementById('modalPreBaixa').style.display = 'none'; }
+
+        async function confirmarPreBaixa() {
+            const id = document.getElementById('preBaixaId').value;
+            const motivo = document.getElementById('pre-baixa-motivo').value;
+            const obs = document.getElementById('obsBaixa').value;
+            const files = document.getElementById('fotoBaixa').files;
+            const btn = document.getElementById('btnConfirmarBaixa');
+            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+
+            const { data: ticketAtual } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
+            let linkFotoBaixa = "";
+            if (files.length > 0) {
+                const urls = await uploadFotos(files, `baixa_${ticketAtual.ticket}`);
+                linkFotoBaixa = urls[0];
+            }
+
+            let fotosAtualizadas = ticketAtual.fotos_urls || "";
+            if (linkFotoBaixa) fotosAtualizadas += (fotosAtualizadas ? "," : "") + linkFotoBaixa;
+
+            await supabaseClient.from('registros_alerta').update({
+                status: 'Aguardando Baixa',
+                informacoes: (ticketAtual.informacoes || "") + `\n\n--- 🛠️ PRÉ-BAIXA ---\nMOTIVO: ${motivo}\nOBS: ${obs}`,
+                fotos_urls: fotosAtualizadas
+            }).eq('id', id);
+
+            alert("Ticket enviado para pré-baixa!");
+            fecharModal();
+            renderTable();
+            btn.innerText = "ENVIAR PARA GESTÃO"; btn.disabled = false;
         }
 
-        function fecharModal() { document.getElementById('viewModal').style.display = "none"; }
+        window.prepararEdicao = async (id) => {
+            const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
+            setorSelecionado = data.setor;
+            document.getElementById('editId').value = data.id;
+            document.getElementById('geoCoords').value = data.localizacao || "";
+            document.getElementById('uf').value = data.uf || "";
+            await carregarAreas(data.uf);
+            document.getElementById('area').value = data.area || "";
+            carregarARDs(data.area);
+            document.getElementById('ard').value = data.ard || "";
+            document.getElementById('empresa').value = data.empresa;
+            document.getElementById('tecnicoNome').value = data.tecnico_nome;
+            document.getElementById('dataRegistro').value = data.data_iso;
+            document.getElementById('endereco').value = data.endereco;
+            document.getElementById('tipo').value = data.tipo;
+            document.getElementById('rede').value = data.rede || "";
+            document.getElementById('informacoes').value = data.informacoes;
+            document.getElementById('display-sector').innerText = "Setor: " + data.setor;
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+        };
 
-        // Inicialização
-        carregarDados();
+        function resetForm() {
+            document.getElementById('irregularityForm').reset();
+            document.getElementById('area').innerHTML = '<option value="">Selecione a UF primeiro...</option>';
+            document.getElementById('ard').innerHTML = '<option value="">Selecione a Área primeiro...</option>';
+            document.getElementById('editId').value = "";
+            document.getElementById('geoCoords').value = "";
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+        }
     </script>
 </body>
 

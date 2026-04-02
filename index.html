@@ -203,6 +203,18 @@
             color: white;
         }
 
+        .search-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .search-container input {
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+
         .table-container {
             overflow-x: auto;
             margin-top: 10px;
@@ -254,6 +266,18 @@
             word-wrap: break-word;
             white-space: normal;
         }
+
+        .load-more-btn {
+            width: 100%;
+            padding: 10px;
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--vivo-purple);
+        }
     </style>
 </head>
 
@@ -284,7 +308,6 @@
                 <option>Normalizado</option>
                 <option>Improcedente</option>
                 <option>Transferência de Setor</option>
-
             </select>
             <label>Evidência (Foto):</label>
             <input type="file" id="fotoBaixa" accept="image/*">
@@ -313,7 +336,6 @@
                     <h2>1. Selecione o Setor</h2>
                     <button class="btn-sector" onclick="selectSector('OSP')">OSP</button>
                     <button class="btn-sector" onclick="selectSector('CASA CLIENTE')">CASA CLIENTE</button>
-                    <button class="btn-sector" onclick="selectSector('MOVEL BACKBONE')">MOVEL BACKBONE</button>
                 </section>
 
                 <section id="step2" class="card hidden">
@@ -355,7 +377,7 @@
                         <label>Data de Registro</label>
                         <input type="date" id="dataRegistro" required>
 
-                        <label>Fotos da Irregularidade (Solicita Localização)</label>
+                        <label>Fotos da Irregularidade</label>
                         <input type="file" id="fotos" accept="image/*" multiple onchange="capturarLocalizacao()">
 
                         <label>Endereço Completo</label>
@@ -393,10 +415,17 @@
 
             <section class="card">
                 <h2>Histórico de Tickets</h2>
+
+                <div class="search-container">
+                    <input type="text" id="searchTicket" placeholder="Busca por Ticket..." onkeyup="renderTable()">
+                    <input type="text" id="searchTecnico" placeholder="Busca por Técnico..." onkeyup="renderTable()">
+                </div>
+
                 <div class="tabs-history">
                     <button id="tab-pendentes" class="tab-btn active" onclick="switchTab('pendente')">PENDENTES</button>
                     <button id="tab-fechados" class="tab-btn" onclick="switchTab('fechado')">PRÉ-BAIXA</button>
                 </div>
+
                 <div class="table-container">
                     <table id="ticketsTable">
                         <thead>
@@ -415,6 +444,8 @@
                         </thead>
                         <tbody></tbody>
                     </table>
+                    <button id="btnLoadMore" class="load-more-btn hidden" onclick="loadMore()">Ver mais resultados (Máx
+                        100)</button>
                 </div>
             </section>
         </main>
@@ -428,6 +459,7 @@
         let setorSelecionado = "";
         let abaAtiva = "pendente";
         let dadosGeograficos = [];
+        let limitExibicao = 10;
 
         window.onload = () => {
             const savedEmail = localStorage.getItem('saved_email');
@@ -478,40 +510,32 @@
             const areaSelect = document.getElementById('area');
             const ardSelect = document.getElementById('ard');
             areaSelect.innerHTML = '<option value="">Carregando...</option>';
-
-            const { data, error } = await supabaseClient
-                .from('apoio_geografico')
-                .select('*')
-                .eq('uf', ufSelecionada);
-
-            if (error) return console.error(error);
+            const { data, error } = await supabaseClient.from('apoio_geografico').select('*').eq('uf', ufSelecionada);
+            if (error) return;
             dadosGeograficos = data;
-
             const areasUnicas = [...new Set(data.map(item => item.area))].sort();
             areaSelect.innerHTML = '<option value="">Selecione a Área...</option>';
-            areasUnicas.forEach(area => {
-                areaSelect.innerHTML += `<option value="${area}">${area}</option>`;
-            });
+            areasUnicas.forEach(area => areaSelect.innerHTML += `<option value="${area}">${area}</option>`);
             ardSelect.innerHTML = '<option value="">Selecione a Área primeiro...</option>';
         }
 
         function carregarARDs(areaSelecionada) {
             const ardSelect = document.getElementById('ard');
-            const ardsFiltrados = dadosGeograficos
-                .filter(item => item.area === areaSelecionada)
-                .map(item => item.ard)
-                .sort();
-
+            const ardsFiltrados = dadosGeograficos.filter(item => item.area === areaSelecionada).map(item => item.ard).sort();
             ardSelect.innerHTML = '<option value="">Selecione o ARD...</option>';
-            ardsFiltrados.forEach(ard => {
-                ardSelect.innerHTML += `<option value="${ard}">${ard}</option>`;
-            });
+            ardsFiltrados.forEach(ard => ardSelect.innerHTML += `<option value="${ard}">${ard}</option>`);
         }
 
         function switchTab(aba) {
             abaAtiva = aba;
+            limitExibicao = 10;
             document.getElementById('tab-pendentes').classList.toggle('active', aba === 'pendente');
             document.getElementById('tab-fechados').classList.toggle('active', aba === 'fechado');
+            renderTable();
+        }
+
+        function loadMore() {
+            limitExibicao = 100;
             renderTable();
         }
 
@@ -519,8 +543,6 @@
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
                     document.getElementById('geoCoords').value = `${pos.coords.latitude},${pos.coords.longitude}`;
-                }, (error) => {
-                    console.warn("Geolocalização não disponível.");
                 });
             }
         }
@@ -583,55 +605,40 @@
             btn.innerText = "SALVAR NO BANCO"; btn.disabled = false;
         };
 
-        window.solicitarPreBaixa = (id) => {
-            document.getElementById('preBaixaId').value = id;
-            document.getElementById('modalPreBaixa').style.display = 'flex';
-        };
+        async function renderTable() {
+            const searchTkt = document.getElementById('searchTicket').value.toLowerCase();
+            const searchTec = document.getElementById('searchTecnico').value.toLowerCase();
 
-        function fecharModal() { document.getElementById('modalPreBaixa').style.display = 'none'; }
+            let { data, error } = await supabaseClient.from('registros_alerta')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        async function confirmarPreBaixa() {
-            const id = document.getElementById('preBaixaId').value;
-            const motivo = document.getElementById('pre-baixa-motivo').value;
-            const obs = document.getElementById('obsBaixa').value;
-            const files = document.getElementById('fotoBaixa').files;
-            const btn = document.getElementById('btnConfirmarBaixa');
+            if (error) return;
 
-            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
-            const { data: ticketAtual } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
+            // Filtro de Aba
+            let filtered = data.filter(item => abaAtiva === 'fechado' ? item.status === 'Aguardando Baixa' : item.status === 'Pendente');
 
-            let linkFotoBaixa = "";
-            if (files.length > 0) {
-                const urls = await uploadFotos(files, `baixa_${ticketAtual.ticket}`);
-                linkFotoBaixa = urls[0];
+            // Filtros de Busca
+            if (searchTkt) filtered = filtered.filter(item => item.ticket.toString().includes(searchTkt));
+            if (searchTec) filtered = filtered.filter(item => item.tecnico_nome.toLowerCase().includes(searchTec));
+
+            // Controle de Volume
+            const totalResultados = filtered.length;
+            const sliceFinal = filtered.slice(0, limitExibicao);
+
+            const btnLoad = document.getElementById('btnLoadMore');
+            if (totalResultados > limitExibicao && limitExibicao < 100) {
+                btnLoad.classList.remove('hidden');
+                btnLoad.innerText = `Mostrar mais resultados (Total: ${totalResultados})`;
+            } else {
+                btnLoad.classList.add('hidden');
             }
 
-            let fotosAtualizadas = ticketAtual.fotos_urls || "";
-            if (linkFotoBaixa) fotosAtualizadas += (fotosAtualizadas ? "," : "") + linkFotoBaixa;
-
-            const { error } = await supabaseClient.from('registros_alerta').update({
-                status: 'Aguardando Baixa',
-                informacoes: (ticketAtual.informacoes || "") + `\n\n--- 🛠️ PRÉ-BAIXA ---\nMOTIVO: ${motivo}\nOBS: ${obs}`,
-                fotos_urls: fotosAtualizadas
-            }).eq('id', id);
-
-            if (!error) { alert("Ticket enviado para pré-baixa!"); fecharModal(); renderTable(); }
-            btn.innerText = "ENVIAR PARA GESTÃO"; btn.disabled = false;
-        }
-
-        async function renderTable() {
-            let { data, error } = await supabaseClient.from('registros_alerta').select('*').order('created_at', { ascending: false });
-            if (error) return;
             const tbody = document.querySelector('#ticketsTable tbody');
-            const filteredData = data.filter(item => abaAtiva === 'fechado' ? item.status === 'Aguardando Baixa' : item.status === 'Pendente');
-
-            tbody.innerHTML = filteredData.map(item => {
+            tbody.innerHTML = sliceFinal.map(item => {
                 const links = item.fotos_urls ? item.fotos_urls.split(',') : [];
                 const fotosHtml = links.map(url => `<img src="${url}" class="thumb-foto" onclick="window.open('${url}', '_blank')">`).join('');
-
-                const locBtn = item.localizacao
-                    ? `<button class="btn-action" style="background:#eee; font-size: 0.9rem;" onclick="window.open('https://www.google.com/maps?q=${item.localizacao}', '_blank')">📍 Mapa</button>`
-                    : '--';
+                const locBtn = item.localizacao ? `<button class="btn-action" style="background:#eee;" onclick="window.open('https://www.google.com/maps?q=${item.localizacao}', '_blank')">📍 Mapa</button>` : '--';
 
                 return `
                 <tr>
@@ -665,18 +672,53 @@
             if (confirm("Excluir?")) { await supabaseClient.from('registros_alerta').delete().eq('id', id); renderTable(); }
         };
 
+        window.solicitarPreBaixa = (id) => {
+            document.getElementById('preBaixaId').value = id;
+            document.getElementById('modalPreBaixa').style.display = 'flex';
+        };
+
+        function fecharModal() { document.getElementById('modalPreBaixa').style.display = 'none'; }
+
+        async function confirmarPreBaixa() {
+            const id = document.getElementById('preBaixaId').value;
+            const motivo = document.getElementById('pre-baixa-motivo').value;
+            const obs = document.getElementById('obsBaixa').value;
+            const files = document.getElementById('fotoBaixa').files;
+            const btn = document.getElementById('btnConfirmarBaixa');
+            btn.innerText = "PROCESSANDO..."; btn.disabled = true;
+
+            const { data: ticketAtual } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
+            let linkFotoBaixa = "";
+            if (files.length > 0) {
+                const urls = await uploadFotos(files, `baixa_${ticketAtual.ticket}`);
+                linkFotoBaixa = urls[0];
+            }
+
+            let fotosAtualizadas = ticketAtual.fotos_urls || "";
+            if (linkFotoBaixa) fotosAtualizadas += (fotosAtualizadas ? "," : "") + linkFotoBaixa;
+
+            await supabaseClient.from('registros_alerta').update({
+                status: 'Aguardando Baixa',
+                informacoes: (ticketAtual.informacoes || "") + `\n\n--- 🛠️ PRÉ-BAIXA ---\nMOTIVO: ${motivo}\nOBS: ${obs}`,
+                fotos_urls: fotosAtualizadas
+            }).eq('id', id);
+
+            alert("Ticket enviado para pré-baixa!");
+            fecharModal();
+            renderTable();
+            btn.innerText = "ENVIAR PARA GESTÃO"; btn.disabled = false;
+        }
+
         window.prepararEdicao = async (id) => {
             const { data } = await supabaseClient.from('registros_alerta').select('*').eq('id', id).single();
             setorSelecionado = data.setor;
             document.getElementById('editId').value = data.id;
             document.getElementById('geoCoords').value = data.localizacao || "";
-
             document.getElementById('uf').value = data.uf || "";
             await carregarAreas(data.uf);
             document.getElementById('area').value = data.area || "";
             carregarARDs(data.area);
             document.getElementById('ard').value = data.ard || "";
-
             document.getElementById('empresa').value = data.empresa;
             document.getElementById('tecnicoNome').value = data.tecnico_nome;
             document.getElementById('dataRegistro').value = data.data_iso;
